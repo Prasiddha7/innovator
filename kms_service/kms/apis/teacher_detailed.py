@@ -416,17 +416,29 @@ class TeacherEarningsView(APIView):
         total_earnings = valid_slips.aggregate(Sum('net_salary'))['net_salary__sum'] or 0
         total_paid = slips.filter(status=SalarySlipStatus.PAID).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
         total_pending = valid_slips.filter(status=SalarySlipStatus.LOCKED).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        projected_earnings = slips.filter(status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
         
         # Breakdown by school
-        schools = set([slip.school for slip in valid_slips])
+        from kms.models import TeacherClassAssignment, TeacherCompensationRule
+        
+        # Get all schools where the teacher has ever had a class or has a compensation rule
+        assigned_schools = list(set(
+            [assignment.school for assignment in TeacherClassAssignment.objects.filter(teacher=teacher)] +
+            [rule.school for rule in TeacherCompensationRule.objects.filter(teacher=teacher)] +
+            [slip.school for slip in valid_slips]
+        ))
+        
         salary_breakdown = []
-        for school in schools:
+        for school in assigned_schools:
             school_slips = valid_slips.filter(school=school)
             school_total = school_slips.aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+            school_projected = slips.filter(school=school, status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+            
             salary_breakdown.append({
                 'school_id': str(school.id),
                 'school_name': school.name,
                 'total_earnings': float(school_total),
+                'projected_earnings': float(school_projected),
                 'slips_count': school_slips.count()
             })
             
@@ -435,7 +447,8 @@ class TeacherEarningsView(APIView):
             'total_earnings': float(total_earnings),
             'total_paid': float(total_paid),
             'total_pending': float(total_pending),
-            'total_schools': len(schools),
+            'projected_earnings': float(projected_earnings),
+            'total_schools': len(assigned_schools),
             'total_classes': teacher.get_classes_count(),
             'salary_breakdown': salary_breakdown,
         }, status=status.HTTP_200_OK)

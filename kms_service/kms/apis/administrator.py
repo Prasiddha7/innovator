@@ -881,11 +881,16 @@ class SalarySlipManagementView(APIView):
             from decimal import Decimal
             adjustments = Decimal(request.data.get('adjustments', '0'))
             notes = request.data.get('notes', '')
+            new_status = request.data.get('status')
             
             slip.adjustments = adjustments
             slip.override_notes = notes
             slip.net_salary = Decimal(slip.base_salary) + Decimal(slip.commission) + adjustments
             slip.admin_override = True
+            
+            if new_status in [choice[0] for choice in SalarySlipStatus.choices]:
+                slip.status = new_status
+                
             slip.save()
             return Response({"message": "Salary slip adjusted", "slip": TeacherSalarySlipSerializer(slip).data})
             

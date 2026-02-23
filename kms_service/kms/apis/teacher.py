@@ -53,11 +53,60 @@ class TeacherProfileView(APIView):
         teacher = Teacher.objects.filter(user=user).first()
         if not teacher:
             return Response({"detail": "Teacher profile not found"}, status=404)
+        from kms.models import TeacherSalarySlip, SalarySlipStatus
+        from django.db.models import Sum
+        
+        slips = TeacherSalarySlip.objects.filter(teacher=teacher)
+        valid_slips = slips.filter(status__in=[SalarySlipStatus.LOCKED, SalarySlipStatus.PAID])
+        
+        total_earnings = valid_slips.aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        total_paid = slips.filter(status=SalarySlipStatus.PAID).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        total_pending = valid_slips.filter(status=SalarySlipStatus.LOCKED).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        
+        # Add projected earnings from DRAFT slips
+        projected_earnings = slips.filter(status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        
+        # Breakdown by school (incorporating both locked slips and current assignments)
+        from kms.models import TeacherClassAssignment, TeacherCompensationRule
+        
+        # Get all schools where the teacher has ever had a class or has a compensation rule
+        assigned_schools = list(set(
+            [assignment.school for assignment in TeacherClassAssignment.objects.filter(teacher=teacher)] +
+            [rule.school for rule in TeacherCompensationRule.objects.filter(teacher=teacher)] +
+            [slip.school for slip in valid_slips]
+        ))
+        
+        salary_breakdown = []
+        for school in assigned_schools:
+            school_slips = valid_slips.filter(school=school)
+            school_total = school_slips.aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+            
+            # School projected (drafts)
+            school_projected = slips.filter(school=school, status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+            
+            # Count distinct classes taught in this school from TeacherClassAssignment
+            classes_count = TeacherClassAssignment.objects.filter(teacher=teacher, school=school).count()
+            
+            salary_breakdown.append({
+                'school_id': str(school.id),
+                'school_name': school.name,
+                'total_earnings': float(school_total),
+                'projected_earnings': float(school_projected),
+                'classes_count': classes_count,
+            })
+
         return Response({
             "id": str(teacher.user.id),
             "name": teacher.name,
             "email": teacher.email,
             "phone_number": teacher.phone_number,
+            "earnings": {
+                "total_earnings": float(total_earnings),
+                "total_paid": float(total_paid),
+                "total_pending": float(total_pending),
+                "projected_earnings": float(projected_earnings),
+                "schools": salary_breakdown
+            }
         })
 
 
