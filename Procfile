@@ -1,1 +1,1 @@
-web: gunicorn innovator.wsgi
+web: gunicorn auth_service.wsgi
