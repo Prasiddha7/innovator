@@ -1,0 +1,34 @@
+services:
+  auth_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+
+  kms_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: kms_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+
+  # auth_service:
+  #   build: ./auth_service
+  #   env_file:
+  #     - ./auth_service/.env.prod
+  #   ports:
+  #     - "80:8000"    # production port
+  #   command: gunicorn auth_service.wsgi:application --bind 0.0.0.0:8000
+  #   depends_on:
+  #     - auth_db
+
+  kms_service:
+    build: ./kms_service
+    env_file:
+      - ./kms_service/.env.prod
+    ports:
+      - "8080:8000"  # production port
+    command: gunicorn kms_service.wsgi:application --bind 0.0.0.0:8000
+    depends_on:
+      - kms_db

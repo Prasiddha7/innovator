@@ -1,0 +1,83 @@
+{
+  "info": {
+    "name": "KMS - Coordinator APIs",
+    "_postman_id": "c0or-dinator-collection-0001",
+    "description": "Coordinator endpoints for assigning teachers and approving attendance",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Assign Teacher (POST)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"teacher_id\": 5,\n  \"classroom_id\": 3\n}"
+        },
+        "url": { "raw": "{{base_url}}/api/coordinator/assignments/", "host": ["{{base_url}}"], "path": ["api","coordinator","assignments",""] }
+      }
+    },
+    {
+      "name": "List Assignments (GET)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+        "url": { "raw": "{{base_url}}/api/coordinator/assignments/", "host": ["{{base_url}}"], "path": ["api","coordinator","assignments",""] }
+      }
+    },
+    {
+      "name": "Delete Assignment (DELETE)",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+        "url": { "raw": "{{base_url}}/api/coordinator/assignments/{{assignment_id}}/", "host": ["{{base_url}}"], "path": ["api","coordinator","assignments","{{assignment_id}}",""] }
+      }
+    },
+    {
+      "name": "List Pending Attendance (GET)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+        "url": { "raw": "{{base_url}}/api/coordinator/attendance/pending/", "host": ["{{base_url}}"], "path": ["api","coordinator","attendance","pending",""] }
+      }
+    },
+    {
+      "name": "Approve Single Attendance (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"approved\": true,\n  \"notes\": \"Approved by coordinator\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/api/coordinator/attendance/{{attendance_id}}/approve/", "host": ["{{base_url}}"], "path": ["api","coordinator","attendance","{{attendance_id}}","approve",""] }
+      }
+    },
+    {
+      "name": "Bulk Approve Attendance (PUT)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"approved\": true,\n  \"attendance_ids\": [10, 11, 12],\n  \"notes\": \"Bulk approval\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/api/coordinator/attendance/bulk-approve/", "host": ["{{base_url}}"], "path": ["api","coordinator","attendance","bulk-approve",""] }
+      }
+    }
+  ]
+}

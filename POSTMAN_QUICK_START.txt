@@ -1,0 +1,71 @@
+# Quick Postman Setup (5 Minutes)
+
+## 1. Download & Install Postman
+- Go to: https://www.postman.com/downloads/
+- Install for your OS
+
+## 2. Import Collection
+1. Open Postman
+2. Click **Import** button (top-left corner)
+3. Choose **Upload Files**
+4. Select: `Innovator_Microservices_JWT.postman_collection.json`
+5. Click **Import** → Done! ✅
+
+## 3. Test Flow (Do in order)
+
+### Request 1️⃣: Register User (Optional)
+```
+Name: Auth Service → Register User
+Status: Should be 201 Created
+(Skip if user already exists)
+```
+
+### Request 2️⃣: Login (REQUIRED **DO THIS FIRST**)
+```
+Name: Auth Service → Login (Get Token)
+Method: POST
+URL: http://localhost:8000/api/auth/sso/login/
+
+Body (raw JSON):
+{
+  "email": "teacher1@example.com",
+  "password": "SecurePass123"
+}
+
+Status: 200 OK
+Response: Will include "access_token" (auto-saved to environment!)
+```
+
+### Request 3️⃣: Get Teacher Profile
+```
+Name: KMS Service - Teacher APIs → Get Teacher Profile
+Method: GET
+URL: http://localhost:8002/api/teacher/profile/
+
+Headers: 
+  Authorization: Bearer {{access_token}}
+
+Status: 200 OK
+Response: Your teacher profile data
+```
+
+## 4. Environment Variables
+Postman automatically manages these (you don't need to set them):
+- `auth_url` = "http://localhost:8000"
+- `kms_url` = "http://localhost:8002"
+- `access_token` = Auto-populated after Login
+
+## 5. What Could Go Wrong (& Fixes)
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| **401 Unauthorized** | No token or token expired | Login again (Request 2) |
+| **403 Forbidden** | User is not admin | Use `/teacher/` endpoint instead of `/admin/` |
+| **Connection refused** | Service not running | Run `docker compose up -d` |
+| **404 Not Found** | Wrong URL | Check URL spelling |
+
+## 6. That's It! 🎉
+
+You're ready to test all microservices using this collection.
+
+**Next: Try each request in order**

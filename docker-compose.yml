@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # --- AUTH SERVICE ---
+  auth_db:
+    image: postgres:15
+    container_name: innovator-auth_db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+
+  auth_service:
+    build: ./auth_service
+    container_name: innovator-auth_service
+    env_file:
+      - ./auth_service/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=auth_service.settings.local
+      - SHARED_JWT_SECRET=innovator-django-secret-key-shared-microservices-12345
+    volumes:
+      - ./auth_service:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth_db
+    networks:
+      backend_network:
+        aliases:
+          - auth-service
+
+  # --- KMS SERVICE ---
+  kms_db:
+    image: postgres:15
+    container_name: innovator-kms_db
+    environment:
+      POSTGRES_DB: kms_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+    ports:
+      - "5434:5432"
+    volumes:
+      - kms_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+
+  kms_service:
+    build: ./kms_service
+    container_name: innovator-kms_service
+    env_file:
+      - ./kms_service/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=kms_service.settings.local
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+      - SHARED_JWT_SECRET=innovator-django-secret-key-shared-microservices-12345
+    volumes:
+      - ./kms_service:/app
+    ports:
+      - "8002:8002" # internal Django port is 8000
+    depends_on:
+      - kms_db
+      - auth_service
+    networks:
+      backend_network:
+        aliases:
+          - kms-service
+          - kms-api
+
+# --- SHARED STORAGE ---
+volumes:
+  auth_data:
+  kms_data:
+
+    # --- NETWORK ---
+networks:
+  backend_network:
+    driver: bridge

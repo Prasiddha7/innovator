@@ -1,0 +1,25 @@
+import requests
+import uuid
+
+def test_registration():
+    url = "http://localhost:8000/api/accounts/register/"
+    # or http://localhost:8000/accounts/register/ based on urls.py
+    # let's try both
+    
+    unique_user = f"testteacher_{uuid.uuid4().hex[:6]}"
+    payload = {
+        "username": unique_user,
+        "email": f"{unique_user}@example.com",
+        "password": "SecurePassword123!",
+        "role": "teacher"
+    }
+
+    print(f"Registering user {unique_user}...")
+    try:
+        response = requests.post("http://localhost:8000/api/accounts/register/", json=payload)
+        print("Response from /api/accounts/register/:", response.status_code, response.text)
+    except Exception as e:
+        print("Error with /api/...", e)
+
+if __name__ == "__main__":
+    test_registration()
