@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserSyncView,
+    VendorCatagoryViewSet,
     VendorDashboardView, VendorCourseViewSet, VendorCourseContentViewSet, VendorPayoutViewSet,
     StudentCourseListView, StudentEnrollmentViewSet, StudentCourseContentListView,
     VendorProfileView, PublicCourseListView
@@ -17,6 +18,7 @@ router.register(r'admin/courses/(?P<course_pk>[^/.]+)/contents', AdminCourseCont
 
 # Vendor Paths
 router.register(r'vendor/courses', VendorCourseViewSet, basename='vendor-course')
+router.register(r'vendor/catagories', VendorCatagoryViewSet, basename='vendor-category')  # Optional: If vendors can manage categories
 # Vendor Course Content uses course_pk
 router.register(r'vendor/courses/(?P<course_pk>[^/.]+)/contents', VendorCourseContentViewSet, basename='vendor-course-content')
 router.register(r'vendor/payouts', VendorPayoutViewSet, basename='vendor-payout')
