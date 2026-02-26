@@ -45,7 +45,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'auth_service.urls'
-WSGI_APPLICATION = 'auth_service.wsgi.application'
+ROOT_URLCONF = 'elearning_service.urls'
+WSGI_APPLICATION = 'elearning_service.wsgi.application'
 
 STATIC_URL = '/static/'
+
+AUTH_USER_MODEL = 'elearning.User'

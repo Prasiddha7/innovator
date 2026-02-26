@@ -26,12 +26,11 @@ class RegisterView(APIView):
         # 🔥 Call kms_service to sync user
         try:
             kms_url = "http://kms-service:8002/api/internal/sync-user/"  
-            # If running via docker use service name
-            # If local use: http://localhost:8002/api/internal/sync-user/
-
+            
             payload = {
                 "id": str(user.id),
                 "username": user.username,
+                "full_name": user.full_name,
                 "email": user.email,
                 "role": user.role,
             }
@@ -43,6 +42,19 @@ class RegisterView(APIView):
 
         except Exception as e:
             print("Error syncing user to KMS:", str(e))
+
+        # 🔥 Call elearning_service to sync user
+        try:
+            elearning_url = "http://elearning-service:8003/api/internal/sync-user/"  
+            # Defaulting to 8003 based on standard increment, will adapt if different
+
+            response = requests.post(elearning_url, json=payload, timeout=5)
+
+            if response.status_code != 200:
+                print("Elearning Sync Failed:", response.text)
+
+        except Exception as e:
+            print("Error syncing user to Elearning:", str(e))
 
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
@@ -66,18 +78,33 @@ class SSOLoginView(APIView):
         # Add custom claims - convert UUID to string for JSON serialization
         refresh["user_id"] = str(user.id)
         refresh["username"] = user.username
+        refresh["full_name"] = user.full_name
         refresh["email"] = user.email
         refresh["role"] = user.role
+
+        payload = {
+            "id": str(user.id),
+            "username": user.username,
+            "full_name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+        }
+
+        # Sync on login as well to ensure latest data is present
+        try:
+            requests.post("http://kms-service:8002/api/internal/sync-user/", json=payload, timeout=5)
+        except Exception:
+            pass
+            
+        try:
+            requests.post("http://elearning-service:8003/api/internal/sync-user/", json=payload, timeout=5)
+        except Exception:
+            pass
 
         return Response({
             "access_token": str(refresh.access_token),
             "refresh_token": str(refresh),
             "token_type": "Bearer",
             "expires_in": 900,  # 15 minutes
-            "user": {
-                "id": str(user.id),
-                "username": user.username,
-                "email": user.email,
-                "role": user.role,
-            }
+            "user": payload
         }, status=status.HTTP_200_OK)

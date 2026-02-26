@@ -3,65 +3,6 @@ from rest_framework import serializers
 import uuid
 from .models import School, ClassRoom, Course, StudentAttendance, Student, Teacher, TeacherAttendance, TeacherCourseAssignment, TeacherClassAssignment, Enrollment, TeacherKYC, TeacherSalary, TeacherCompensationRule, TeacherSalarySlip
 
-
-# class FlexibleRelatedField(serializers.Field):
-#     """Accept either a PK (UUID/int) or a human-friendly name for related lookups.
-    
-#     For Teacher model, also tries lookup by user_id (auth user ID).
-#     Intelligently converts string UUIDs to UUID objects for proper database lookups.
-#     Example usage in a ModelSerializer:
-#         school = FlexibleRelatedField(model=School)
-#     """
-#     def __init__(self, *, model, lookup_field='id', name_field='name', **kwargs):
-#         super().__init__(**kwargs)
-#         self.model = model
-#         self.lookup_field = lookup_field
-#         self.name_field = name_field
-
-#     def to_representation(self, value):
-#         if value is None:
-#             return None
-#         # return the PK by default; callers can include an additional read-only name field
-#         return str(getattr(value, self.lookup_field))
-
-#     def to_internal_value(self, data):
-#         Model = self.model
-        
-#         # Try direct PK lookup first
-#         try:
-#             # Try as-is first (handles UUID object or int PKs)
-#             lookup = {self.lookup_field: data}
-#             return Model.objects.get(**lookup)
-#         except (Model.DoesNotExist, ValueError, TypeError):
-#             pass
-        
-#         # If lookup_field is UUID, try converting string to UUID
-#         try:
-#             lookup_uuid = uuid.UUID(str(data))
-#             lookup = {self.lookup_field: lookup_uuid}
-#             return Model.objects.get(**lookup)
-#         except (ValueError, TypeError, Model.DoesNotExist):
-#             pass
-        
-#         # For Teacher model, try lookup by user_id (e.g., when frontend sends User.id)
-#         if Model.__name__ == 'Teacher':
-#             try:
-#                 return Model.objects.get(user_id=data)
-#             except (Model.DoesNotExist, ValueError, TypeError):
-#                 pass
-#             try:
-#                 lookup_uuid = uuid.UUID(str(data))
-#                 return Model.objects.get(user_id=lookup_uuid)
-#             except (ValueError, TypeError, Model.DoesNotExist):
-#                 pass
-        
-#         # Try lookup by name field
-#         try:
-#             lookup = {self.name_field: data}
-#             return Model.objects.get(**lookup)
-#         except Model.DoesNotExist:
-#             raise serializers.ValidationError(f"{Model.__name__} not found for value '{data}'. Try using the {self.name_field} or {self.lookup_field}.")
-
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
@@ -847,6 +788,11 @@ class UserSyncSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "email", "role"]
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'is_active', 'is_staff', 'date_joined']
 
 class StudentAttendanceSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source="student.name", read_only=True)

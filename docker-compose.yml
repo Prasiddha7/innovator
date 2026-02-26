@@ -72,10 +72,48 @@ services:
           - kms-service
           - kms-api
 
+  # --- ELEARNING SERVICE ---
+  elearning_db:
+    image: postgres:15
+    container_name: innovator-elearning_db
+    environment:
+      POSTGRES_DB: elearning_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+    ports:
+      - "5435:5432"
+    volumes:
+      - elearning_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+
+  elearning_service:
+    build: ./elearning_service
+    container_name: innovator-elearning_service
+    env_file:
+      - ./elearning_service/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=elearning_service.settings.local
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+      - SHARED_JWT_SECRET=innovator-django-secret-key-shared-microservices-12345
+    volumes:
+      - ./elearning_service:/app
+    ports:
+      - "8003:8003"  # internal Django port 8000 or 8003 depending on runserver
+    depends_on:
+      - elearning_db
+      - auth_service
+    networks:
+      backend_network:
+        aliases:
+          - elearning-service
+          - elearning-api
+
 # --- SHARED STORAGE ---
 volumes:
   auth_data:
   kms_data:
+  elearning_data:
 
     # --- NETWORK ---
 networks:

@@ -40,8 +40,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import User
 from .serializers import UserSyncSerializer
-from rest_framework.permissions import AllowAny
-
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.generics import RetrieveAPIView
 
 class UserSyncView(APIView):
     """
@@ -80,3 +80,16 @@ class UserSyncView(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserDetailView(RetrieveAPIView):
+    """
+    Returns details of the currently authenticated user
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        from .serializers import UserDetailSerializer
+        return UserDetailSerializer
+    
+    def get_object(self):
+        return self.request.user

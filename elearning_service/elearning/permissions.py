@@ -1,20 +1,26 @@
-from rest_framework.permissions import BasePermission
+from rest_framework import permissions
 
-class IsRole(BasePermission):
-    def __init__(self, role):
-        self.role = role
-
+class IsAdmin(permissions.BasePermission):
+    """Allow access only to admin users"""
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == self.role
+        if not request.user or not request.user.is_authenticated:
+            return False
+        # Check both request.auth (from JWT) and group membership
+        is_admin_role = request.auth and request.auth.get('role') == 'admin'
+        is_admin_group = request.user.groups.filter(name='admin').exists()
+        return is_admin_role or is_admin_group
 
-class IsAdmin(BasePermission):
+class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "admin"
+        return bool(request.user and request.user.is_authenticated and request.user.role == 'admin')
 
-class IsElearningVendor(BasePermission):
+class IsElearningVendorUser(permissions.BasePermission):
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "elearning_vendor"
+        # Must be vendor and approved
+        if not (request.user and request.user.is_authenticated and request.user.role == 'elearning_vendor'):
+            return False
+        return request.user.vendor_profile.is_approved
 
-class IsStudent(BasePermission):
+class IsStudentUser(permissions.BasePermission):
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "student"
+        return bool(request.user and request.user.is_authenticated and request.user.role == 'student')

@@ -4,6 +4,9 @@ import uuid
 
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # The default AbstractUser has first_name and last_name.
+    # To satisfy the specific 'use full name in user model' requirement, we add an explicit full_name field or property.
+    full_name = models.CharField(max_length=255, blank=True, null=True)
     
     ROLE_CHOICES = [
         ("admin", "Admin"),
