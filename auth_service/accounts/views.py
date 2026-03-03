@@ -2,6 +2,8 @@ import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -56,6 +58,18 @@ class RegisterView(APIView):
         except Exception as e:
             print("Error syncing user to Elearning:", str(e))
 
+        # 🔥 Call ecommerce_service to sync user
+        ecommerce_roles = ["admin", "ecommerce_vendor", "customer"]
+        if user.role in ecommerce_roles:
+            try:
+                ecommerce_url = "http://ecommerce-service:8004/api/internal/sync-user/"
+                response = requests.post(ecommerce_url, json=payload, timeout=5)
+                
+                if response.status_code != 200:
+                    print("Ecommerce Sync Failed:", response.text)
+            except Exception as e:
+                print("Error syncing user to Ecommerce:", str(e))
+
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 # accounts/views.py
@@ -101,6 +115,13 @@ class SSOLoginView(APIView):
         except Exception:
             pass
 
+        ecommerce_roles = ["admin", "ecommerce_vendor", "customer"]
+        if user.role in ecommerce_roles:
+            try:
+                requests.post("http://ecommerce-service:8004/api/internal/sync-user/", json=payload, timeout=5)
+            except Exception:
+                pass
+
         return Response({
             "access_token": str(refresh.access_token),
             "refresh_token": str(refresh),
@@ -108,3 +129,17 @@ class SSOLoginView(APIView):
             "expires_in": 900,  # 15 minutes
             "user": payload
         }, status=status.HTTP_200_OK)
+
+
+class UserDetailView(RetrieveAPIView):
+    """
+    Returns details of the currently authenticated user
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        from .serializers import UserSerializer
+        return UserSerializer
+    
+    def get_object(self):
+        return self.request.user

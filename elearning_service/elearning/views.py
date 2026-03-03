@@ -128,7 +128,6 @@ class PublicCourseListView(generics.ListAPIView):
     serializer_class = CourseListSerializer
 
 class StudentCourseListView(generics.ListAPIView):
-    # Backward compatible if needed, but PublicCourseListView is better
     permission_classes = [IsAuthenticated] # any authenticated can browse
     queryset = Course.objects.filter(is_published=True)
     serializer_class = CourseListSerializer

@@ -344,6 +344,9 @@ class TeacherKYC(models.Model):
         default="pending"
     )
     rejection_reason = models.TextField(null=True, blank=True)
+    kyc_status_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    total_classes = models.IntegerField(default=0)
+    total_hours = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     approved_at = models.DateTimeField(null=True, blank=True)
