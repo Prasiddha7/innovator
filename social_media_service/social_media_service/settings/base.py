@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'drf_spectacular',
     # your apps here
 ]
 
@@ -45,7 +47,18 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'auth_service.urls'
-WSGI_APPLICATION = 'auth_service.wsgi.application'
+ROOT_URLCONF = 'social_media_service.urls'
+WSGI_APPLICATION = 'social_media_service.wsgi.application'
 
 STATIC_URL = '/static/'
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Innovator Social Media Service API',
+    'DESCRIPTION': 'API documentation for Social Media Service',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "kms",
 ]
 
@@ -37,4 +38,14 @@ WSGI_APPLICATION = "kms_service.wsgi.application"
 
 DATABASES = {}  # override in local.py / prod.py
 
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Innovator KMS Service API',
+    'DESCRIPTION': 'API documentation for KMS Service',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 

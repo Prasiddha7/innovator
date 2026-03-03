@@ -1,0 +1,38 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - feature/ecommerce_apis
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Assuming deployment to a Linux VPS via SSH as a common standard
+    # If using AWS, Heroku, or K8s, replace this step accordingly.
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Server via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /root/innovator
+          git pull origin main
+          
+          # Rebuild and restart services using production compose file
+          docker-compose -f docker-compose.prod.yml down
+          docker-compose -f docker-compose.prod.yml build
+          docker-compose -f docker-compose.prod.yml up -d
+          
+          # Optionally run migrations
+          # docker-compose -f docker-compose.prod.yml exec auth_service python manage.py migrate
+          
+          echo "Deployment successful."

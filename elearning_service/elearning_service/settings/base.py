@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'drf_spectacular',
     # your apps here
 ]
 
@@ -51,3 +53,14 @@ WSGI_APPLICATION = 'elearning_service.wsgi.application'
 STATIC_URL = '/static/'
 
 AUTH_USER_MODEL = 'elearning.User'
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Innovator Elearning Service API',
+    'DESCRIPTION': 'API documentation for Elearning Service',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

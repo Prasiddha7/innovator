@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "accounts",
 ]
 
@@ -37,3 +38,13 @@ WSGI_APPLICATION = "auth_service.wsgi.application"
 
 DATABASES = {}  # override in local.py / prod.py
 
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Innovator Auth Service API',
+    'DESCRIPTION': 'API documentation for Auth Service',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

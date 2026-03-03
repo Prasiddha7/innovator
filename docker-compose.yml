@@ -109,13 +109,52 @@ services:
           - elearning-service
           - elearning-api
 
+# --- Ecommerce Service ---
+  ecommerce_db:
+    image: postgres:15
+    container_name: innovator-ecommerce_db
+    environment:
+      POSTGRES_DB: ecommerce_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+    ports:
+      - "5436:5432"
+    volumes:
+      - ecommerce_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+
+  ecommerce_service:
+    build: ./ecommerce_service
+    container_name: innovator-ecommerce_service
+    env_file:
+      - ./ecommerce_service/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=ecommerce_service.settings.local
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+      - SHARED_JWT_SECRET=innovator-django-secret-key-shared-microservices-12345
+    volumes:
+      - ./ecommerce_service:/app
+    ports:
+      - "8004:8004"  # internal Django port 8000 or 8004 depending on runserver
+    depends_on:
+      - ecommerce_db
+      - auth_service
+    networks:
+      backend_network:
+        aliases:
+          - ecommerce-service
+          - ecommerce-api
+
 # --- SHARED STORAGE ---
 volumes:
   auth_data:
   kms_data:
   elearning_data:
+  ecommerce_data:
 
     # --- NETWORK ---
 networks:
   backend_network:
     driver: bridge
+

@@ -32,7 +32,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # your apps here
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_spectacular',
+    'ecommerce',
 ]
 
 MIDDLEWARE = [
@@ -45,7 +48,18 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'auth_service.urls'
-WSGI_APPLICATION = 'auth_service.wsgi.application'
+ROOT_URLCONF = 'ecommerce_service.urls'
+WSGI_APPLICATION = 'ecommerce_service.wsgi.application'
 
 STATIC_URL = '/static/'
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Innovator Ecommerce Service API',
+    'DESCRIPTION': 'API documentation for Ecommerce Service',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
