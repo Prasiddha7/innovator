@@ -60,6 +60,7 @@ services:
       - ALLOWED_HOSTS=182.93.94.220
     ports:
       - "8010:8000"
+    command: [ "gunicorn", "auth_service.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120" ]
     depends_on:
       - auth_db
 
@@ -75,6 +76,7 @@ services:
 
     ports:
       - "8002:8002"
+    command: [ "gunicorn", "kms_service.wsgi:application", "--bind", "0.0.0.0:8002", "--timeout", "120" ]
     depends_on:
       - kms_db
 
@@ -90,6 +92,7 @@ services:
 
     ports:
       - "8003:8003"
+    command: [ "gunicorn", "elearning_service.wsgi:application", "--bind", "0.0.0.0:8003", "--timeout", "120" ]
     depends_on:
       - elearning_db
 
@@ -104,6 +107,7 @@ services:
       - ALLOWED_HOSTS=182.93.94.220
     ports:
       - "8004:8004"
+    command: [ "gunicorn", "ecommerce_service.wsgi:application", "--bind", "0.0.0.0:8004", "--timeout", "120" ]
     depends_on:
       - ecommerce_db
 

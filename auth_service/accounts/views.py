@@ -27,7 +27,7 @@ class RegisterView(APIView):
 
         # 🔥 Call kms_service to sync user
         try:
-            kms_url = "http://kms-service:8002/api/internal/sync-user/"  
+            kms_url = "http://kms_service:8002/api/internal/sync-user/"  
             
             payload = {
                 "id": str(user.id),
@@ -51,7 +51,7 @@ class RegisterView(APIView):
 
         # 🔥 Call elearning_service to sync user
         try:
-            elearning_url = "http://elearning-service:8003/api/internal/sync-user/"  
+            elearning_url = "http://elearning_service:8003/api/internal/sync-user/"  
             # Defaulting to 8003 based on standard increment, will adapt if different
 
             response = requests.post(elearning_url, json=payload, timeout=5)
@@ -64,7 +64,7 @@ class RegisterView(APIView):
 
         # 🔥 Call ecommerce_service to sync user
         try:
-            ecommerce_url = "http://ecommerce-service:8004/api/internal/sync-user/"
+            ecommerce_url = "http://ecommerce_service:8004/api/internal/sync-user/"
             response = requests.post(ecommerce_url, json=payload, timeout=5)
             
             if response.status_code != 200:
@@ -112,17 +112,17 @@ class SSOLoginView(APIView):
 
         # Sync on login as well to ensure latest data is present
         try:
-            requests.post("http://kms-service:8002/api/internal/sync-user/", json=payload, timeout=5)
+            requests.post("http://kms_service:8002/api/internal/sync-user/", json=payload, timeout=5)
         except Exception:
             pass
             
         try:
-            requests.post("http://elearning-service:8003/api/internal/sync-user/", json=payload, timeout=5)
+            requests.post("http://elearning_service:8003/api/internal/sync-user/", json=payload, timeout=5)
         except Exception:
             pass
 
         try:
-            requests.post("http://ecommerce-service:8004/api/internal/sync-user/", json=payload, timeout=5)
+            requests.post("http://ecommerce_service:8004/api/internal/sync-user/", json=payload, timeout=5)
         except Exception:
             pass
 

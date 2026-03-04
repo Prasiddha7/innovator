@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-    libpq-dev gcc curl postgresql-client && \
+    libpq-dev gcc curl postgresql-client \
+    libjpeg-dev zlib1g-dev && \
     pip install --upgrade pip
 
 COPY requirements.txt .
