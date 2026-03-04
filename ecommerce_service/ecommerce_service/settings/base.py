@@ -9,10 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
 # normalize allowed hosts and drop any empty strings
-_raw_allowed = os.getenv("ALLOWED_HOSTS", "*")
-ALLOWED_HOSTS = [h for h in _raw_allowed.split(",") if h]
-if not DEBUG and not ALLOWED_HOSTS:
-    raise RuntimeError("ALLOWED_HOSTS must be set when DEBUG is False")
+ALLOWED_HOSTS = ["*"]
 
 SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key")
 

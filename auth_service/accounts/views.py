@@ -39,6 +39,7 @@ class RegisterView(APIView):
         # KMS Sync
         try:
             res = requests.post(settings.KMS_SERVICE_SYNC_URL, json=payload, timeout=5)
+            print(f"KMS Sync Response: {res.status_code} - {res.text}")
             if res.status_code != 200:
                 print(f"KMS Sync Failed (Status {res.status_code}): {res.text}")
         except Exception as e:
