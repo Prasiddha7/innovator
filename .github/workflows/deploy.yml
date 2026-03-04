@@ -24,7 +24,7 @@ jobs:
           script: |
             set -e
 
-            cd /root/innovator
+            cd ~/innovator
 
             # Pull latest code from the triggering branch
             git pull origin ${{ github.ref_name }}
