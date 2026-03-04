@@ -54,3 +54,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Microservice Sync URLs
+KMS_SERVICE_SYNC_URL = os.getenv("KMS_SERVICE_URL", "http://kms_service:8002") + "/api/internal/sync-user/"
+ELEARNING_SERVICE_SYNC_URL = os.getenv("ELEARNING_SERVICE_URL", "http://elearning_service:8003") + "/api/internal/sync-user/"
+ECOMMERCE_SERVICE_SYNC_URL = os.getenv("ECOMMERCE_SERVICE_URL", "http://ecommerce_service:8004") + "/api/internal/sync-user/"

@@ -8,14 +8,7 @@ from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 
-# class RegisterView(APIView):
-#     permission_classes = [permissions.AllowAny]
-
-#     def post(self, request):
-#         serializer = RegisterSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.save()
-#         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+from django.conf import settings
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -25,60 +18,47 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # 🔥 Call kms_service to sync user
-        try:
-            kms_url = "http://kms_service:8002/api/internal/sync-user/"  
-            
-            payload = {
-                "id": str(user.id),
-                "username": user.username,
-                "full_name": user.full_name,
-                "email": user.email,
-                "role": user.role,
-                "gender": user.gender,
-                "date_of_birth": str(user.date_of_birth) if user.date_of_birth else None,
-                "address": user.address,
-                "phone_number": user.phone_number,
-            }
+        payload = {
+            "id": str(user.id),
+            "username": user.username,
+            "full_name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+            "gender": user.gender,
+            "date_of_birth": str(user.date_of_birth) if user.date_of_birth else None,
+            "address": user.address,
+            "phone_number": user.phone_number,
+        }
 
-            response = requests.post(kms_url, json=payload, timeout=5)
-
-            if response.status_code != 200:
-                print("KMS Sync Failed:", response.text)
-
-        except Exception as e:
-            print("Error syncing user to KMS:", str(e))
-
-        # 🔥 Call elearning_service to sync user
-        try:
-            elearning_url = "http://elearning_service:8003/api/internal/sync-user/"  
-            # Defaulting to 8003 based on standard increment, will adapt if different
-
-            response = requests.post(elearning_url, json=payload, timeout=5)
-
-            if response.status_code != 200:
-                print("Elearning Sync Failed:", response.text)
-
-        except Exception as e:
-            print("Error syncing user to Elearning:", str(e))
-
-        # 🔥 Call ecommerce_service to sync user
-        try:
-            ecommerce_url = "http://ecommerce_service:8004/api/internal/sync-user/"
-            response = requests.post(ecommerce_url, json=payload, timeout=5)
-            
-            if response.status_code != 200:
-                print("Ecommerce Sync Failed:", response.text)
-        except Exception as e:
-            print("Error syncing user to Ecommerce:", str(e))
+        # Sync to microservices
+        self.sync_user(payload)
 
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
-# accounts/views.py
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from .serializers import LoginSerializer
+    def sync_user(self, payload):
+        # KMS Sync
+        try:
+            res = requests.post(settings.KMS_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"KMS Sync Failed (Status {res.status_code}): {res.text}")
+        except Exception as e:
+            print(f"Error syncing user to KMS: {str(e)}")
+
+        # Elearning Sync
+        try:
+            res = requests.post(settings.ELEARNING_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"Elearning Sync Failed (Status {res.status_code}): {res.text}")
+        except Exception as e:
+            print(f"Error syncing user to Elearning: {str(e)}")
+
+        # Ecommerce Sync
+        try:
+            res = requests.post(settings.ECOMMERCE_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"Ecommerce Sync Failed (Status {res.status_code}): {res.text}")
+        except Exception as e:
+            print(f"Error syncing user to Ecommerce: {str(e)}")
 
 
 class SSOLoginView(APIView):
@@ -87,11 +67,9 @@ class SSOLoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]  # get user from serializer
+        user = serializer.validated_data["user"]
 
         refresh = RefreshToken.for_user(user)
-        
-        # Add custom claims - convert UUID to string for JSON serialization
         refresh["user_id"] = str(user.id)
         refresh["username"] = user.username
         refresh["full_name"] = user.full_name
@@ -110,35 +88,35 @@ class SSOLoginView(APIView):
             "phone_number": user.phone_number,
         }
 
-        # Sync on login as well to ensure latest data is present
+        # Sync on login
         try:
-            requests.post("http://kms_service:8002/api/internal/sync-user/", json=payload, timeout=5)
-        except Exception:
-            pass
+            res = requests.post(settings.KMS_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"KMS Sync Failed on Login: {res.text}")
+        except Exception: pass
             
         try:
-            requests.post("http://elearning_service:8003/api/internal/sync-user/", json=payload, timeout=5)
-        except Exception:
-            pass
+            res = requests.post(settings.ELEARNING_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"Elearning Sync Failed on Login: {res.text}")
+        except Exception: pass
 
         try:
-            requests.post("http://ecommerce_service:8004/api/internal/sync-user/", json=payload, timeout=5)
-        except Exception:
-            pass
+            res = requests.post(settings.ECOMMERCE_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"Ecommerce Sync Failed on Login: {res.text}")
+        except Exception: pass
 
         return Response({
             "access_token": str(refresh.access_token),
             "refresh_token": str(refresh),
             "token_type": "Bearer",
-            "expires_in": 900,  # 15 minutes
+            "expires_in": 900,
             "user": payload
         }, status=status.HTTP_200_OK)
 
 
 class UserDetailView(RetrieveAPIView):
-    """
-    Returns details of the currently authenticated user
-    """
     permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):

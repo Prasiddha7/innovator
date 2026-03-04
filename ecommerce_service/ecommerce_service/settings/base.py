@@ -57,6 +57,8 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+AUTH_USER_MODEL = 'ecommerce.User'
+
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Innovator Ecommerce Service API',
     'DESCRIPTION': 'API documentation for Ecommerce Service',
