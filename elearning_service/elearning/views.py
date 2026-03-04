@@ -1,4 +1,5 @@
 from rest_framework import viewsets, generics, views, status
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -23,6 +24,7 @@ class UserSyncView(APIView):
     Internal API to sync users from auth_service
     """
     permission_classes = [AllowAny]  # Later secure with service token
+    serializer_class = UserSyncSerializer
 
     def post(self, request):
         serializer = UserSyncSerializer(data=request.data)
@@ -65,7 +67,8 @@ class UserSyncView(APIView):
 # --- VENDOR APIs ---
 class VendorDashboardView(views.APIView):
     permission_classes = [IsElearningVendorUser]
-
+    
+    @extend_schema(responses={200: VendorProfileSerializer})
     def get(self, request):
         vendor_profile = request.user.vendor_profile
 
@@ -202,6 +205,7 @@ class StudentCourseContentListView(generics.ListAPIView):
 
 class VendorProfileView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = VendorProfileSerializer
 
     def get(self, request):
         vendor_profile = request.user.vendor_profile

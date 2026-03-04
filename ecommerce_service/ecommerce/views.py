@@ -12,6 +12,7 @@ class UserSyncView(APIView):
     Internal API to sync users from auth_service
     """
     permission_classes = [AllowAny]  # Later secure with service token
+    serializer_class = UserSyncSerializer
 
     def post(self, request):
         serializer = UserSyncSerializer(data=request.data)
