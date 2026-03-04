@@ -61,6 +61,7 @@ class UserSyncView(APIView):
                 id=user_data["id"],  # UUID from auth_service
                 defaults={
                     "username": user_data["username"],
+                    "full_name": user_data.get("full_name"),
                     "email": user_data["email"],
                     "role": user_data.get("role"),
                     "gender": user_data.get("gender"),
