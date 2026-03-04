@@ -17,7 +17,7 @@ class User(AbstractUser):
         ("ecommerce_vendor", "Ecommerce Vendor"),
         ("customer", "Customer"),
     ]
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, null=True, blank=True)
     groups = models.ManyToManyField(
         Group,
         related_name='custom_user_set', 

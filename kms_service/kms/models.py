@@ -7,9 +7,8 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 # Custom User model with UUID primary key for microservice sync
 class UserManager(BaseUserManager):
     def create_user(self, username, email=None, password=None, role=None, **extra_fields):
-        if role is None:
-            raise ValueError("Role must be provided")
-        extra_fields['role'] = role
+        if role:
+            extra_fields['role'] = role
         user = self.model(username=username, email=email, **extra_fields)
         if password:
             user.set_password(password)
@@ -32,7 +31,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(blank=True, null=True)
-    role = models.CharField(max_length=50)
+    role = models.CharField(max_length=50, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)

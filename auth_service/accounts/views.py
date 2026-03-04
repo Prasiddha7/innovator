@@ -59,16 +59,14 @@ class RegisterView(APIView):
             print("Error syncing user to Elearning:", str(e))
 
         # 🔥 Call ecommerce_service to sync user
-        ecommerce_roles = ["admin", "ecommerce_vendor", "customer"]
-        if user.role in ecommerce_roles:
-            try:
-                ecommerce_url = "http://ecommerce-service:8004/api/internal/sync-user/"
-                response = requests.post(ecommerce_url, json=payload, timeout=5)
-                
-                if response.status_code != 200:
-                    print("Ecommerce Sync Failed:", response.text)
-            except Exception as e:
-                print("Error syncing user to Ecommerce:", str(e))
+        try:
+            ecommerce_url = "http://ecommerce-service:8004/api/internal/sync-user/"
+            response = requests.post(ecommerce_url, json=payload, timeout=5)
+            
+            if response.status_code != 200:
+                print("Ecommerce Sync Failed:", response.text)
+        except Exception as e:
+            print("Error syncing user to Ecommerce:", str(e))
 
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
@@ -115,12 +113,10 @@ class SSOLoginView(APIView):
         except Exception:
             pass
 
-        ecommerce_roles = ["admin", "ecommerce_vendor", "customer"]
-        if user.role in ecommerce_roles:
-            try:
-                requests.post("http://ecommerce-service:8004/api/internal/sync-user/", json=payload, timeout=5)
-            except Exception:
-                pass
+        try:
+            requests.post("http://ecommerce-service:8004/api/internal/sync-user/", json=payload, timeout=5)
+        except Exception:
+            pass
 
         return Response({
             "access_token": str(refresh.access_token),

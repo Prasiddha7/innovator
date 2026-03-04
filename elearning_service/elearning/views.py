@@ -36,7 +36,7 @@ class UserSyncView(APIView):
                 defaults={
                     "username": user_data["username"],
                     "email": user_data["email"],
-                    "role": user_data["role"],
+                    "role": user_data.get("role"),
                 }
             )
 
