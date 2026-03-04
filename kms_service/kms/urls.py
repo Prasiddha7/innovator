@@ -3,7 +3,7 @@ from kms.views import UserSyncView, UserDetailView
 from kms.apis.coordinator import TeacherAttendanceSupervisionView
 from kms.apis.coordinator_assignment import CoordinatorSchoolAssignmentView
 from kms.apis.administrator import ClassRoomView, SchoolView, TeacherSchoolAssignmentView, TeacherCompensationRuleView, GenerateSalarySlipsView, SalarySlipManagementView
-from kms.apis.teacher import TeacherAttendanceViewSet, TeacherProfileView
+from kms.apis.teacher import TeacherAttendanceViewSet, TeacherProfileView, TeacherClassAssignmentView
 from kms.apis.teacher_detailed import TeacherKYCUploadView, TeacherEarningsView, TeacherSalarySlipsView
 from kms.apis.students import AttendanceApproveAPIView, AttendanceListAPIView, AttendanceUploadAPIView, StudentCreateAPIView
 
@@ -36,6 +36,7 @@ urlpatterns = [
 
     # Profile & KYC
     path('teacher/profile/', TeacherProfileView.as_view(), name='teacher-profile'),
+    path('teacher/class-assignment/', TeacherClassAssignmentView.as_view(), name='teacher-class-assignment'),
     path('teacher/kyc/upload/', TeacherKYCUploadView.as_view(), name='teacher-kyc-upload'),
     path('teacher/kyc/status/', TeacherKYCUploadView.as_view(), name='teacher-kyc-status'),
     path('teacher/earnings/', TeacherEarningsView.as_view(), name='teacher-earnings'),

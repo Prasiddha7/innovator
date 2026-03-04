@@ -53,6 +53,7 @@ class TeacherProfileView(APIView):
         teacher = Teacher.objects.filter(user=user).first()
         if not teacher:
             return Response({"detail": "Teacher profile not found"}, status=404)
+        
         from kms.models import TeacherSalarySlip, SalarySlipStatus
         from django.db.models import Sum
         
@@ -62,29 +63,21 @@ class TeacherProfileView(APIView):
         total_earnings = valid_slips.aggregate(Sum('net_salary'))['net_salary__sum'] or 0
         total_paid = slips.filter(status=SalarySlipStatus.PAID).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
         total_pending = valid_slips.filter(status=SalarySlipStatus.LOCKED).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
-        
-        # Add projected earnings from DRAFT slips
         projected_earnings = slips.filter(status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
         
-        # Breakdown by school (incorporating both locked slips and current assignments)
-        from kms.models import TeacherClassAssignment, TeacherCompensationRule
-        
-        # Get all schools where the teacher has ever had a class or has a compensation rule
-        assigned_schools = list(set(
-            [assignment.school for assignment in TeacherClassAssignment.objects.filter(teacher=teacher)] +
-            [rule.school for rule in TeacherCompensationRule.objects.filter(teacher=teacher)] +
-            [slip.school for slip in valid_slips]
-        ))
-        
         salary_breakdown = []
-        for school in assigned_schools:
+        from kms.models import TeacherSalary
+        
+        # 🔹 Source schools directly from TeacherSalary (Admin assignments)
+        teacher_salaries = TeacherSalary.objects.filter(teacher=teacher).select_related('school')
+        
+        for salary in teacher_salaries:
+            school = salary.school
             school_slips = valid_slips.filter(school=school)
             school_total = school_slips.aggregate(Sum('net_salary'))['net_salary__sum'] or 0
-            
-            # School projected (drafts)
             school_projected = slips.filter(school=school, status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
             
-            # Count distinct classes taught in this school from TeacherClassAssignment
+            # Count distinct classes taught in this school from TeacherClassAssignment (Teacher self-assignment)
             classes_count = TeacherClassAssignment.objects.filter(teacher=teacher, school=school).count()
             
             salary_breakdown.append({
@@ -108,6 +101,60 @@ class TeacherProfileView(APIView):
                 "schools": salary_breakdown
             }
         })
+
+
+class TeacherClassAssignmentView(APIView):
+    """
+    Allows teachers to assign themselves to classrooms.
+    A teacher can only assign themselves to classrooms in schools they are already assigned to by an admin.
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsTeacherUser]
+
+    def post(self, request):
+        teacher = Teacher.objects.filter(user=request.user).first()
+        if not teacher:
+            return Response({"detail": "Teacher profile not found"}, status=404)
+
+        classroom_id = request.data.get('classroom_id')
+        if not classroom_id:
+            return Response({"error": "classroom_id is required"}, status=400)
+
+        from kms.models import ClassRoom, TeacherClassAssignment
+        try:
+            classroom = ClassRoom.objects.get(id=classroom_id)
+        except (ClassRoom.DoesNotExist, ValueError):
+            return Response({"error": "Classroom not found"}, status=404)
+
+        # 🔹 Security Check: Is the teacher assigned to this school?
+        if not teacher.schools.filter(id=classroom.school_id).exists():
+            return Response(
+                {"error": "You can only assign yourself to classes in schools you are assigned to by an admin."},
+                status=403
+            )
+
+        # 🔹 Create or get assignment
+        assignment, created = TeacherClassAssignment.objects.get_or_create(
+            teacher=teacher,
+            classroom=classroom,
+            school=classroom.school
+        )
+
+        return Response({
+            "message": "Assigned to class successfully" if created else "Algorithm already assigned to this class",
+            "classroom": classroom.name,
+            "school": classroom.school.name,
+            "assigned_at": assignment.assigned_at
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    def delete(self, request):
+        """Remove self from a classroom"""
+        teacher = Teacher.objects.filter(user=request.user).first()
+        classroom_id = request.data.get('classroom_id')
+        
+        from kms.models import TeacherClassAssignment
+        TeacherClassAssignment.objects.filter(teacher=teacher, classroom_id=classroom_id).delete()
+        return Response({"message": "Successfully unassigned from class"}, status=status.HTTP_204_NO_CONTENT)
 
 
 class TeacherKYCView(APIView):

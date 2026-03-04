@@ -308,7 +308,8 @@ class TeacherClassAssignmentView(APIView):
 
             assignment, created = TeacherClassAssignment.objects.get_or_create(
                 teacher=teacher,
-                classroom=classroom
+                classroom=classroom,
+                school=classroom.school
             )
 
             results["classroom_assignments"].append({
@@ -544,7 +545,8 @@ class AssignTeacherView(APIView):
             )   
         assignment, created = TeacherClassAssignment.objects.get_or_create(
             teacher=teacher_obj,
-            classroom=classroom_obj
+            classroom=classroom_obj,
+            school=classroom_obj.school
         )
         return Response({
             "teacher": teacher_obj.name,
