@@ -44,9 +44,11 @@ jobs:
             $DOCKER_CMD -f docker-compose.prod.yml build
             $DOCKER_CMD -f docker-compose.prod.yml up -d
 
-            # Run migrations safely on auth_service
-            $DOCKER_CMD -f docker-compose.prod.yml exec -T auth_service \
-              python manage.py migrate || true
+            # Run migrations safely on all services
+            $DOCKER_CMD -f docker-compose.prod.yml exec -T auth_service python manage.py migrate || true
+            $DOCKER_CMD -f docker-compose.prod.yml exec -T kms_service python manage.py migrate || true
+            $DOCKER_CMD -f docker-compose.prod.yml exec -T elearning_service python manage.py migrate || true
+            $DOCKER_CMD -f docker-compose.prod.yml exec -T ecommerce_service python manage.py migrate || true
 
             # Cleanup unused images
             docker image prune -f
