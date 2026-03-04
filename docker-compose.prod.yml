@@ -57,7 +57,6 @@ services:
       - auth_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=auth_service.settings.prod
-      - ALLOWED_HOSTS=182.93.94.220
     ports:
       - "8010:8000"
     command: [ "gunicorn", "auth_service.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120" ]
@@ -72,7 +71,6 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=kms_service.settings.prod
       - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
-      - ALLOWED_HOSTS=182.93.94.220
 
     ports:
       - "8002:8002"
@@ -88,7 +86,6 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=elearning_service.settings.prod
       - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
-      - ALLOWED_HOSTS=182.93.94.220
 
     ports:
       - "8003:8003"
@@ -104,7 +101,6 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=ecommerce_service.settings.prod
       - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
-      - ALLOWED_HOSTS=182.93.94.220
     ports:
       - "8004:8004"
     command: [ "gunicorn", "ecommerce_service.wsgi:application", "--bind", "0.0.0.0:8004", "--timeout", "120" ]

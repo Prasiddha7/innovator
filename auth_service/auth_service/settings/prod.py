@@ -1,12 +1,10 @@
 from .base import *
 
 DEBUG = False
-_raw_allowed = os.environ.get("ALLOWED_HOSTS", "yourdomain.com")
-ALLOWED_HOSTS = [
-    "182.93.94.220",
-    "localhost",
-    "127.0.0.1",
-]
+_raw_allowed = os.getenv("ALLOWED_HOSTS", "*")
+ALLOWED_HOSTS = [h for h in _raw_allowed.split(",") if h]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["localhost", "182.93.94.220"]
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "innovator-django-secret-key-shared-microservices-12345"

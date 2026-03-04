@@ -55,7 +55,16 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {}  # override in local.py / prod.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv("DB_NAME"),
+        'USER': os.getenv("DB_USER"),
+        'PASSWORD': os.getenv("DB_PASSWORD"),
+        'HOST': os.getenv("DB_HOST", "kms_db"),
+        'PORT': int(os.getenv("DB_PORT", 5432)),
+    }
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
