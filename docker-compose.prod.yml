@@ -70,7 +70,7 @@ services:
       - kms_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=kms_service.settings.prod
-      - AUTH_SERVICE_URL=http://auth_service:8010/api/auth
+      - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
       - ALLOWED_HOSTS=182.93.94.220
 
     ports:
@@ -85,9 +85,9 @@ services:
       - elearning_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=elearning_service.settings.prod
-      - AUTH_SERVICE_URL=http://auth_service:8010/api/auth
+      - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
       - ALLOWED_HOSTS=182.93.94.220
-      
+
     ports:
       - "8003:8003"
     depends_on:
@@ -100,7 +100,7 @@ services:
       - ecommerce_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=ecommerce_service.settings.prod
-      - AUTH_SERVICE_URL=http://auth_service:8010/api/auth
+      - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
       - ALLOWED_HOSTS=182.93.94.220
     ports:
       - "8004:8004"
