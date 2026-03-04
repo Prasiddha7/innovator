@@ -18,10 +18,10 @@ SHARED_JWT_SECRET = os.getenv("SHARED_JWT_SECRET", "innovator-django-secret-key-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST"),
+        'NAME': os.getenv("DB_NAME", "elearning_db"),
+        'USER': os.getenv("DB_USER", "innovator_user"),
+        'PASSWORD': os.getenv("DB_PASSWORD", "Nep@tronix9335%"),
+        'HOST': os.getenv("DB_HOST", "elearning_db"),
         'PORT': int(os.getenv("DB_PORT", 5432)),
     }
 }
@@ -72,6 +72,10 @@ TEMPLATES = [
 ]
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 AUTH_USER_MODEL = 'elearning.User'
 

@@ -60,9 +60,9 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME"),
-        'USER': os.getenv("DB_USER"),
-        'PASSWORD': os.getenv("DB_PASSWORD"),
+        'NAME': os.getenv("DB_NAME", "kms_db"),
+        'USER': os.getenv("DB_USER", "innovator_user"),
+        'PASSWORD': os.getenv("DB_PASSWORD", "Nep@tronix9335%"),
         'HOST': os.getenv("DB_HOST", "kms_db"),
         'PORT': int(os.getenv("DB_PORT", 5432)),
     }
@@ -94,4 +94,10 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
