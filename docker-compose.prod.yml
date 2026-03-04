@@ -50,7 +50,7 @@ services:
     ports:
       - "5435:5432"
 
-  auth_service:
+  auth-service:
     build: ./auth_service
     restart: always
     env_file:
@@ -64,14 +64,14 @@ services:
     depends_on:
       - auth_db
 
-  kms_service:
+  kms-service:
     build: ./kms_service
     restart: always
     env_file:
       - kms_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=kms_service.settings.prod
-      - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
       - ALLOWED_HOSTS=*
 
     ports:
@@ -80,14 +80,14 @@ services:
     depends_on:
       - kms_db
 
-  elearning_service:
+  elearning-service:
     build: ./elearning_service
     restart: always
     env_file:
       - elearning_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=elearning_service.settings.prod
-      - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
       - ALLOWED_HOSTS=*
 
     ports:
@@ -96,14 +96,14 @@ services:
     depends_on:
       - elearning_db
 
-  ecommerce_service:
+  ecommerce-service:
     build: ./ecommerce_service
     restart: always
     env_file:
       - ecommerce_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=ecommerce_service.settings.prod
-      - AUTH_SERVICE_URL=http://auth_service:8000/api/auth
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
       - ALLOWED_HOSTS=*
     ports:
       - "8004:8004"
