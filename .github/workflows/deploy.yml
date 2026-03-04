@@ -26,8 +26,9 @@ jobs:
 
             cd ~/innovator
 
-            # Pull latest code from the triggering branch
-            git pull origin ${{ github.ref_name }}
+            # Force update to match the repository exactly
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
 
             # Check for Docker Compose V2, fallback to V1 if needed
             if docker compose version > /dev/null 2>&1; then

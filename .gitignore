@@ -1,0 +1,15 @@
+*.env
+*.env.prod
+*.env.*
+__pycache__/
+*.pyc
+venv/
+.venv/
+.DS_Store
+auth_service/private.key
+auth_service/private.pem
+auth_service/public.key
+auth_service/public.pem
+maintenance.sh
+Terminal Saved Output.txt
+test_ecommerce_sync.py
