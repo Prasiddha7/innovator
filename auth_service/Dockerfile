@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip
+# Upgrade pip and setuptools
+RUN pip install --upgrade pip setuptools
 
 # Copy requirements first (better caching)
 COPY requirements.txt .
