@@ -11,11 +11,8 @@ SHARED_JWT_SECRET = os.getenv(
 
 SECRET_KEY = SHARED_JWT_SECRET
 DEBUG = True
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "192.168.1.85",
-    "unerratic-stanford-rimosely.ngrok-free.dev",]
+ALLOWED_HOSTS = ["*"]
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -103,6 +100,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Microservice Sync URLs for development
-KMS_SERVICE_SYNC_URL = os.getenv("KMS_SERVICE_URL", "http://kms_service:8002") + "/api/internal/sync-user/"
-ELEARNING_SERVICE_SYNC_URL = os.getenv("ELEARNING_SERVICE_URL", "http://elearning_service:8003") + "/api/internal/sync-user/"
-ECOMMERCE_SERVICE_SYNC_URL = os.getenv("ECOMMERCE_SERVICE_URL", "http://ecommerce_service:8004") + "/api/internal/sync-user/"
+KMS_SERVICE_SYNC_URL = os.getenv("KMS_SERVICE_URL", "http://kms-service:8002") + "/api/internal/sync-user/"
+ELEARNING_SERVICE_SYNC_URL = os.getenv("ELEARNING_SERVICE_URL", "http://elearning-service:8003") + "/api/internal/sync-user/"
+ECOMMERCE_SERVICE_SYNC_URL = os.getenv("ECOMMERCE_SERVICE_URL", "http://ecommerce-service:8004") + "/api/internal/sync-user/"

@@ -12,11 +12,7 @@ SHARED_JWT_SECRET = os.getenv(
 SECRET_KEY = SHARED_JWT_SECRET
 DEBUG = True
 # ALLOWED_HOSTS = ["*"]
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "192.168.1.85",
-    "unerratic-stanford-rimosely.ngrok-free.dev",]
+ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",

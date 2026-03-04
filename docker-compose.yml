@@ -16,7 +16,7 @@ services:
     networks:
       - backend_network
 
-  auth_service:
+  auth-service:
     build: ./auth_service
     container_name: innovator-auth_service
     env_file:
@@ -50,7 +50,7 @@ services:
     networks:
       - backend_network
 
-  kms_service:
+  kms-service:
     build: ./kms_service
     container_name: innovator-kms_service
     env_file:
@@ -65,7 +65,7 @@ services:
       - "8002:8002" # internal Django port is 8000
     depends_on:
       - kms_db
-      - auth_service
+      - auth-service
     networks:
       backend_network:
         aliases:
@@ -87,7 +87,7 @@ services:
     networks:
       - backend_network
 
-  elearning_service:
+  elearning-service:
     build: ./elearning_service
     container_name: innovator-elearning_service
     env_file:
@@ -99,17 +99,17 @@ services:
     volumes:
       - ./elearning_service:/app
     ports:
-      - "8003:8003"  # internal Django port 8000 or 8003 depending on runserver
+      - "8003:8003" # internal Django port 8000 or 8003 depending on runserver
     depends_on:
       - elearning_db
-      - auth_service
+      - auth-service
     networks:
       backend_network:
         aliases:
           - elearning-service
           - elearning-api
 
-# --- Ecommerce Service ---
+  # --- Ecommerce Service ---
   ecommerce_db:
     image: postgres:15
     container_name: innovator-ecommerce_db
@@ -124,7 +124,7 @@ services:
     networks:
       - backend_network
 
-  ecommerce_service:
+  ecommerce-service:
     build: ./ecommerce_service
     container_name: innovator-ecommerce_service
     env_file:
@@ -136,10 +136,10 @@ services:
     volumes:
       - ./ecommerce_service:/app
     ports:
-      - "8004:8004"  # internal Django port 8000 or 8004 depending on runserver
+      - "8004:8004" # internal Django port 8000 or 8004 depending on runserver
     depends_on:
       - ecommerce_db
-      - auth_service
+      - auth-service
     networks:
       backend_network:
         aliases:
@@ -157,4 +157,3 @@ volumes:
 networks:
   backend_network:
     driver: bridge
-
