@@ -1,173 +1,114 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  # --- DATABASES ---
+
   auth_db:
     image: postgres:15
-    container_name: prod-auth_db
+    restart: always
     environment:
       POSTGRES_DB: auth_db
       POSTGRES_USER: innovator_user
-      POSTGRES_PASSWORD: Nep@tronix9335%
+      POSTGRES_PASSWORD: "Nep@tronix9335%"
     volumes:
-      - auth_data_prod:/var/lib/postgresql/data
-    networks:
-      - backend_network
+      - auth_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   kms_db:
     image: postgres:15
-    container_name: prod-kms_db
+    restart: always
     environment:
       POSTGRES_DB: kms_db
       POSTGRES_USER: innovator_user
-      POSTGRES_PASSWORD: Nep@tronix9335%
+      POSTGRES_PASSWORD: "Nep@tronix9335%"
     volumes:
-      - kms_data_prod:/var/lib/postgresql/data
-    networks:
-      - backend_network
+      - kms_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
 
   elearning_db:
     image: postgres:15
-    container_name: prod-elearning_db
+    restart: always
     environment:
       POSTGRES_DB: elearning_db
       POSTGRES_USER: innovator_user
-      POSTGRES_PASSWORD: Nep@tronix9335%
+      POSTGRES_PASSWORD: "Nep@tronix9335%"
     volumes:
-      - elearning_data_prod:/var/lib/postgresql/data
-    networks:
-      - backend_network
+      - elearning_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
 
   ecommerce_db:
     image: postgres:15
-    container_name: prod-ecommerce_db
+    restart: always
     environment:
       POSTGRES_DB: ecommerce_db
       POSTGRES_USER: innovator_user
-      POSTGRES_PASSWORD: Nep@tronix9335%
+      POSTGRES_PASSWORD: "Nep@tronix9335%"
     volumes:
-      - ecommerce_data_prod:/var/lib/postgresql/data
-    networks:
-      - backend_network
+      - ecommerce_db_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
 
-  social_media_db:
-    image: postgres:15
-    container_name: prod-social_media_db
-    environment:
-      POSTGRES_DB: social_media_db
-      POSTGRES_USER: innovator_user
-      POSTGRES_PASSWORD: Nep@tronix9335%
-    volumes:
-      - social_media_data_prod:/var/lib/postgresql/data
-    networks:
-      - backend_network
-
-  # --- SERVICES ---
   auth_service:
     build: ./auth_service
-    container_name: prod-auth_service
+    restart: always
     env_file:
-      - ./auth_service/.env
+      - auth_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=auth_service.settings.prod
       - ALLOWED_HOSTS=182.93.94.220
     ports:
-      - "8010:8000"    # Production port 8010 mapped to internal 8000
-    command: gunicorn auth_service.wsgi:application --bind 0.0.0.0:8000
+      - "8010:8000"
     depends_on:
       - auth_db
-    networks:
-      backend_network:
-        aliases:
-          - auth-service
 
   kms_service:
     build: ./kms_service
-    container_name: prod-kms_service
+    restart: always
     env_file:
-      - ./kms_service/.env
+      - kms_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=kms_service.settings.prod
+      - AUTH_SERVICE_URL=http://auth_service:8010/api/auth
       - ALLOWED_HOSTS=182.93.94.220
-      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+
     ports:
-      - "8002:8000"  # Production port 8002 mapped to internal 8000
-    command: gunicorn kms_service.wsgi:application --bind 0.0.0.0:8000
+      - "8002:8002"
     depends_on:
       - kms_db
-      - auth_service
-    networks:
-      backend_network:
-        aliases:
-          - kms-service
 
   elearning_service:
     build: ./elearning_service
-    container_name: prod-elearning_service
+    restart: always
     env_file:
-      - ./elearning_service/.env
+      - elearning_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=elearning_service.settings.prod
+      - AUTH_SERVICE_URL=http://auth_service:8010/api/auth
       - ALLOWED_HOSTS=182.93.94.220
-      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+      
     ports:
-      - "8003:8000"
-    command: gunicorn elearning_service.wsgi:application --bind 0.0.0.0:8000
+      - "8003:8003"
     depends_on:
       - elearning_db
-      - auth_service
-    networks:
-      backend_network:
-        aliases:
-          - elearning-service
 
   ecommerce_service:
     build: ./ecommerce_service
-    container_name: prod-ecommerce_service
+    restart: always
     env_file:
-      - ./ecommerce_service/.env
+      - ecommerce_service/.env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=ecommerce_service.settings.prod
+      - AUTH_SERVICE_URL=http://auth_service:8010/api/auth
       - ALLOWED_HOSTS=182.93.94.220
-      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
     ports:
-      - "8004:8000"
-    command: gunicorn ecommerce_service.wsgi:application --bind 0.0.0.0:8000
+      - "8004:8004"
     depends_on:
       - ecommerce_db
-      - auth_service
-    networks:
-      backend_network:
-        aliases:
-          - ecommerce-service
-
-  social_media_service:
-    build: ./social_media_service
-    container_name: prod-social_media_service
-    env_file:
-      - ./social_media_service/.env
-    environment:
-      - DJANGO_SETTINGS_MODULE=social_media_service.settings.prod
-      - ALLOWED_HOSTS=182.93.94.220
-      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
-    ports:
-      - "8005:8000"
-    command: gunicorn social_media_service.wsgi:application --bind 0.0.0.0:8000
-    depends_on:
-      - social_media_db
-      - auth_service
-    networks:
-      backend_network:
-        aliases:
-          - social-media-service
 
 volumes:
-  auth_data_prod:
-  kms_data_prod:
-  elearning_data_prod:
-  ecommerce_data_prod:
-  social_media_data_prod:
-
-networks:
-  backend_network:
-    driver: bridge
+  auth_db_data:
+  kms_db_data:
+  elearning_db_data:
+  ecommerce_db_data:

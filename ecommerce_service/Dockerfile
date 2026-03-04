@@ -15,5 +15,5 @@ COPY . .
 # Make wait-for-db.sh executable
 RUN chmod +x wait-for-db.sh
 
-CMD ["./wait-for-db.sh", "ecommerce_db", "python", "manage.py", "runserver", "0.0.0.0:8004"]
+CMD ["gunicorn", "ecommerce_service.wsgi:application", "--bind", "0.0.0.0:8004"]
     

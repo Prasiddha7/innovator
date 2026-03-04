@@ -5,34 +5,49 @@ on:
     branches:
       - main
       - master
-      - feature/ecommerce_apis
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Assuming deployment to a Linux VPS via SSH as a common standard
-    # If using AWS, Heroku, or K8s, replace this step accordingly.
-    
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
 
-    - name: Deploy to Server via SSH
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        script: |
-          cd /root/innovator
-          git pull origin main
-          
-          # Rebuild and restart services using production compose file
-          docker-compose -f docker-compose.prod.yml down
-          docker-compose -f docker-compose.prod.yml build
-          docker-compose -f docker-compose.prod.yml up -d
-          
-          # Optionally run migrations
-          # docker-compose -f docker-compose.prod.yml exec auth_service python manage.py migrate
-          
-          echo "Deployment successful."
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            cd /root/innovator
+
+            # Pull latest code from the triggering branch
+            git pull origin ${{ github.ref_name }}
+
+            # Check for Docker Compose V2, fallback to V1 if needed
+            if docker compose version > /dev/null 2>&1; then
+              DOCKER_CMD="docker compose"
+            else
+              DOCKER_CMD="docker-compose"
+            fi
+
+            echo "Using $DOCKER_CMD for deployment"
+
+            # Deploy services
+            $DOCKER_CMD -f docker-compose.prod.yml down --remove-orphans
+            $DOCKER_CMD -f docker-compose.prod.yml build
+            $DOCKER_CMD -f docker-compose.prod.yml up -d
+
+            # Run migrations safely on auth_service
+            $DOCKER_CMD -f docker-compose.prod.yml exec -T auth_service \
+              python manage.py migrate || true
+
+            # Cleanup unused images
+            docker image prune -f
+
+            echo "Deployment successful."

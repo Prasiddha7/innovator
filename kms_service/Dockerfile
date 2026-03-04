@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 8002
 
 # Default command (can be overridden)
-CMD ["sh", "-c", "python manage.py runserver 0.0.0.0:8002"]
+CMD ["gunicorn", "kms_service.wsgi:application", "--bind", "0.0.0.0:8002"]

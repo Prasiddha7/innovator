@@ -15,4 +15,4 @@ COPY . .
 # Make wait-for-db.sh executable
 RUN chmod +x wait-for-db.sh
 
-CMD ["./wait-for-db.sh", "elearning_db", "python", "manage.py", "runserver", "0.0.0.0:8003"]
+CMD ["gunicorn", "elearning_service.wsgi:application", "--bind", "0.0.0.0:8003"]
