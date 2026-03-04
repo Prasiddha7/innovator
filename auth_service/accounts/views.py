@@ -35,6 +35,10 @@ class RegisterView(APIView):
                 "full_name": user.full_name,
                 "email": user.email,
                 "role": user.role,
+                "gender": user.gender,
+                "date_of_birth": str(user.date_of_birth) if user.date_of_birth else None,
+                "address": user.address,
+                "phone_number": user.phone_number,
             }
 
             response = requests.post(kms_url, json=payload, timeout=5)
@@ -100,6 +104,10 @@ class SSOLoginView(APIView):
             "full_name": user.full_name,
             "email": user.email,
             "role": user.role,
+            "gender": user.gender,
+            "date_of_birth": str(user.date_of_birth) if user.date_of_birth else None,
+            "address": user.address,
+            "phone_number": user.phone_number,
         }
 
         # Sync on login as well to ensure latest data is present

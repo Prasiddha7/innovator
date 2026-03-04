@@ -787,7 +787,7 @@ class UserSyncSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField()
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role"]
+        fields = ["id", "username", "email", "role", "gender", "date_of_birth", "address", "phone_number"]
 
 class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:

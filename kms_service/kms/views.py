@@ -62,6 +62,10 @@ class UserSyncView(APIView):
                     "username": user_data["username"],
                     "email": user_data["email"],
                     "role": user_data.get("role"),
+                    "gender": user_data.get("gender"),
+                    "date_of_birth": user_data.get("date_of_birth"),
+                    "address": user_data.get("address"),
+                    "phone_number": user_data.get("phone_number"),
                 }
             )
 

@@ -9,7 +9,7 @@ class UserSyncSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField()
     class Meta:
         model = User
-        fields = ["id", "username", "full_name", "email", "role"]
+        fields = ["id", "username", "full_name", "email", "role", "gender", "date_of_birth", "address", "phone_number"]
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
