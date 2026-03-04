@@ -28,18 +28,31 @@ class CustomJWTAuthentication(JWTAuthentication):
                 raise exceptions.AuthenticationFailed("Token missing user_id")
 
             with transaction.atomic():
-                # 🔹 Sync or Create KMS User
-                user, created = User.objects.get_or_create(
-                    id=user_id,
-                    defaults={
-                        "username": username or f"user_{user_id[:8]}",
-                        "email": email,
-                        "role": role,
-                        "is_active": True,
-                    },
-                )
+                # 🔹 Step 1: Try to find user by ID
+                user = User.objects.filter(id=user_id).first()
+                created = False
+
+                if not user:
+                    # 🔹 Step 2: If not found by ID, check by username (to handle conflicts like 'admin')
+                    user = User.objects.filter(username=username).first()
+                    if user:
+                        # Conflict found! Update the existing user's ID to match Auth service
+                        logger.warning(f"Conflict found: User '{username}' exists with ID {user.id}. Updating to {user_id}")
+                        User.objects.filter(id=user.id).update(id=user_id)
+                        user = User.objects.get(id=user_id)
+                    else:
+                        # 🔹 Step 3: Truly new user
+                        user = User.objects.create(
+                            id=user_id,
+                            username=username or f"user_{user_id[:8]}",
+                            email=email,
+                            role=role,
+                            is_active=True,
+                        )
+                        created = True
 
                 if not created:
+                    # Update fields if changed
                     updated = False
                     if username and user.username != username:
                         user.username = username
