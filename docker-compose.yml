@@ -27,7 +27,7 @@ services:
     volumes:
       - ./auth_service:/app
     ports:
-      - "8000:8000"
+      - "8010:8000"
     depends_on:
       - auth_db
     networks:
