@@ -233,10 +233,15 @@ class TeacherSalarySlipSerializer(serializers.ModelSerializer):
         ]
 
 class TeacherKYCSerializer(serializers.ModelSerializer):
+    bank_account_number = serializers.CharField(required=True, allow_blank=False)
     class Meta:
         model = TeacherKYC
-        fields = ['id', 'id_doc', 'cv', 'address', 'status', 'phone_verified', 
-                  'document_verified', 'submitted_at', 'updated_at', 'approved_at', 'rejection_reason']
+        fields = [
+            'id', 'id_doc', 'cv', 'bank_account_number', 'bank_name', 
+            'citizenship', 'n_id_number', 'photo', 'address', 'status', 
+            'phone_verified', 'document_verified', 'submitted_at', 
+            'updated_at', 'approved_at', 'rejection_reason'
+        ]
 
 class TeacherDetailedSerializer(serializers.ModelSerializer):
     """Detailed teacher profile with earnings, classes, and salary info"""
@@ -684,14 +689,22 @@ class StudentAttendanceSerializer(serializers.ModelSerializer):
         model = StudentAttendance
         fields = '__all__'
 
-class TeacherKYCUploadSerializer(serializers.Serializer):
-    id_doc = serializers.FileField()
-    cv = serializers.FileField(required=False, allow_null=True)
-    address = serializers.CharField(required=False, allow_blank=True)
-    
+class TeacherKYCUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherKYC
-        fields = ["id_doc", "cv", "address"]
+        fields = [
+            "id_doc", "cv", "bank_account_number", "bank_name", 
+            "citizenship", "n_id_number", "photo", "address"
+        ]
+        extra_kwargs = {
+            'cv': {'required': False, 'allow_null': True},
+            'address': {'required': False, 'allow_blank': True},
+            'bank_account_number': {'required': True},
+            'bank_name': {'required': True},
+            'citizenship': {'required': True},
+            'n_id_number': {'required': True},
+            'photo': {'required': True},
+        }
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -725,9 +738,8 @@ class TeacherKYCUploadSerializer(serializers.Serializer):
     def create(self, validated_data):
         # If KYC already exists → update it instead of creating new
         if self.existing_kyc:
-            self.existing_kyc.id_doc = validated_data.get("id_doc", self.existing_kyc.id_doc)
-            self.existing_kyc.cv = validated_data.get("cv", self.existing_kyc.cv)
-            self.existing_kyc.address = validated_data.get("address", self.existing_kyc.address)
+            for attr, value in validated_data.items():
+                setattr(self.existing_kyc, attr, value)
             self.existing_kyc.status = "pending"
             self.existing_kyc.updated_at = timezone.now()
             self.existing_kyc.save()
@@ -736,10 +748,8 @@ class TeacherKYCUploadSerializer(serializers.Serializer):
         # Create new KYC
         return TeacherKYC.objects.create(
             teacher=self.teacher,
-            id_doc=validated_data.get("id_doc"),
-            cv=validated_data.get("cv"),
-            address=validated_data.get("address", ""),
-            status="pending"
+            status="pending",
+            **validated_data
         )
 
 
@@ -821,12 +831,17 @@ class StudentAttendanceSerializer(serializers.ModelSerializer):
         read_only_fields = ["marked_by", "marked_at", "approved_by", "approved_at"]
 
 class StudentSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=True, allow_blank=False)
+    school = serializers.CharField(write_only=True, help_text="School name or UUID")
+    school_name = serializers.CharField(source='school.name', read_only=True)
+    
     class Meta:
         model = Student
         fields = [
             "id",
             "name",
             "school",
+            "school_name",
             "classroom",
             "address",
             "phone_number",

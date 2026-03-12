@@ -5,7 +5,7 @@ from kms.apis.coordinator_assignment import CoordinatorSchoolAssignmentView
 from kms.apis.administrator import ClassRoomView, SchoolView, TeacherSchoolAssignmentView, TeacherCompensationRuleView, GenerateSalarySlipsView, SalarySlipManagementView
 from kms.apis.teacher import TeacherAttendanceViewSet, TeacherProfileView, TeacherClassAssignmentView
 from kms.apis.teacher_detailed import TeacherKYCUploadView, TeacherEarningsView, TeacherSalarySlipsView
-from kms.apis.students import AttendanceApproveAPIView, AttendanceListAPIView, AttendanceUploadAPIView, StudentCreateAPIView
+from kms.apis.students import AttendanceApproveAPIView, AttendanceListAPIView, StudentCSVUploadAPIView, StudentCreateAPIView, AttendanceMarkAPIView
 
 
 urlpatterns = [
@@ -43,9 +43,14 @@ urlpatterns = [
     path('teacher/salary-slips/', TeacherSalarySlipsView.as_view(), name='teacher-salary-slips'),
 
     #Student Attendance
-    path("student/create/", StudentCreateAPIView.as_view()),
-    path("attendance/upload/", AttendanceUploadAPIView.as_view()),
-    path("attendance/", AttendanceListAPIView.as_view()),
-    path("attendance/approve/<uuid:attendance_id>/", AttendanceApproveAPIView.as_view()),
+    #Student Attendance
+    path("student/create/", StudentCreateAPIView.as_view(), name='student-create'),
+    path("student/bulk-csv/", StudentCSVUploadAPIView.as_view(), name='student-bulk-csv'),
+    path("attendance/", AttendanceListAPIView.as_view(), name='attendance-list'),
+    path("attendance/mark/", AttendanceMarkAPIView.as_view(), name='attendance-mark'),
+    path("attendance/approve/<uuid:attendance_id>/", AttendanceApproveAPIView.as_view(), name='attendance-approve'),
+
+    # Teacher Salary (already registered but ensuring it works for the teacher)
+    # path('teacher/salary-slips/', TeacherSalarySlipsView.as_view(), name='teacher-salary-slips'),
 
 ]
