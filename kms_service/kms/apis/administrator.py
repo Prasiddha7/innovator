@@ -680,16 +680,19 @@ class TeacherCompensationRuleView(APIView):
             if not teacher:
                 return Response({"error": f"Teacher '{teacher_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
                 
-            try:
-                school = School.objects.get(id=school_input)
-            except (School.DoesNotExist, ValueError):
+            if is_valid_uuid(school_input):
                 try:
-                    school = School.objects.get(id=uuid.UUID(str(school_input)))
-                except (ValueError, School.DoesNotExist):
-                    try:
-                        school = School.objects.get(name=school_input)
-                    except School.DoesNotExist:
-                        return Response({"error": f"School '{school_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
+                    school = School.objects.get(id=school_input)
+                except School.DoesNotExist:
+                    school = None
+            else:
+                try:
+                    school = School.objects.get(name=school_input)
+                except School.DoesNotExist:
+                    school = None
+            
+            if not school:
+                return Response({"error": f"School '{school_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
             
             rule, created = TeacherCompensationRule.objects.update_or_create(
                 teacher=teacher,
