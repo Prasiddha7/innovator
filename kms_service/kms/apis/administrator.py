@@ -663,67 +663,81 @@ class TeacherCompensationRuleView(APIView):
 
     def post(self, request):
         """Create or update a compensation rule for a teacher at a school"""
-        teacher_input = request.data.get('teacher')
-        school_input = request.data.get('school')
-        payment_type = request.data.get('payment_type', PaymentType.FIXED_MONTHLY)
-        base_rate = request.data.get('base_rate')
-        commission = request.data.get('commission_percentage', 0.0)
-        
-        if not all([teacher_input, school_input, base_rate]):
-            return Response(
-                {"error": "teacher, school, and base_rate are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        teacher = resolve_teacher(teacher_input)
-        if not teacher:
-            return Response({"error": f"Teacher '{teacher_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
-            
         try:
-            school = School.objects.get(id=school_input)
-        except (School.DoesNotExist, ValueError):
+            teacher_input = request.data.get('teacher')
+            school_input = request.data.get('school')
+            payment_type = request.data.get('payment_type', PaymentType.FIXED_MONTHLY)
+            base_rate = request.data.get('base_rate')
+            commission = request.data.get('commission_percentage', 0.0)
+            
+            if not all([teacher_input, school_input, base_rate]):
+                return Response(
+                    {"error": "teacher, school, and base_rate are required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            teacher = resolve_teacher(teacher_input)
+            if not teacher:
+                return Response({"error": f"Teacher '{teacher_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
+                
             try:
-                school = School.objects.get(id=uuid.UUID(str(school_input)))
-            except (ValueError, School.DoesNotExist):
+                school = School.objects.get(id=school_input)
+            except (School.DoesNotExist, ValueError):
                 try:
-                    school = School.objects.get(name=school_input)
-                except School.DoesNotExist:
-                    return Response({"error": f"School '{school_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-        rule, created = TeacherCompensationRule.objects.update_or_create(
-            teacher=teacher,
-            school=school,
-            defaults={
-                'payment_type': payment_type,
-                'base_rate': base_rate,
-                'commission_percentage': commission,
-                'is_active': request.data.get('is_active', True)
-            }
-        )
-        
-        serializer = TeacherCompensationRuleSerializer(rule)
-        return Response({
-            'message': 'Compensation rule created' if created else 'Compensation rule updated',
-            'rule': serializer.data
-        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+                    school = School.objects.get(id=uuid.UUID(str(school_input)))
+                except (ValueError, School.DoesNotExist):
+                    try:
+                        school = School.objects.get(name=school_input)
+                    except School.DoesNotExist:
+                        return Response({"error": f"School '{school_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            rule, created = TeacherCompensationRule.objects.update_or_create(
+                teacher=teacher,
+                school=school,
+                defaults={
+                    'payment_type': payment_type,
+                    'base_rate': base_rate,
+                    'commission_percentage': commission,
+                    'is_active': request.data.get('is_active', True)
+                }
+            )
+            
+            serializer = TeacherCompensationRuleSerializer(rule)
+            return Response({
+                'message': 'Compensation rule created' if created else 'Compensation rule updated',
+                'rule': serializer.data
+            }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        except Exception as e:
+            import traceback
+            return Response({"error": "Internal Server Error", "details": str(e), "traceback": traceback.format_exc()}, status=500)
 
     def get(self, request):
         """Get compensation rules"""
-        teacher_id = request.query_params.get('teacher_id')
-        school_id = request.query_params.get('school_id')
-        
-        rules = TeacherCompensationRule.objects.all()
-        
-        if teacher_id:
-            rules = rules.filter(Q(teacher_id=teacher_id) | Q(teacher__user__id=teacher_id))
-        if school_id:
-            rules = rules.filter(school_id=school_id)
+        try:
+            teacher_id = request.query_params.get('teacher_id')
+            school_id = request.query_params.get('school_id')
             
-        serializer = TeacherCompensationRuleSerializer(rules, many=True)
-        return Response({
-            'total': len(serializer.data),
-            'rules': serializer.data
-        })
+            rules = TeacherCompensationRule.objects.all()
+            
+            if teacher_id:
+                if is_valid_uuid(teacher_id):
+                    rules = rules.filter(Q(teacher_id=teacher_id) | Q(teacher__user__id=teacher_id))
+                else:
+                    rules = rules.none()
+            if school_id:
+                if is_valid_uuid(school_id):
+                    rules = rules.filter(school_id=school_id)
+                else:
+                    rules = rules.none()
+                
+            serializer = TeacherCompensationRuleSerializer(rules, many=True)
+            return Response({
+                'total': len(serializer.data),
+                'rules': serializer.data
+            })
+        except Exception as e:
+            import traceback
+            return Response({"error": "Internal Server Error", "details": str(e), "traceback": traceback.format_exc()}, status=500)
 
 class GenerateSalarySlipsView(APIView):
     """Auto-calculate and generate draft salary slips for a given month and year"""
