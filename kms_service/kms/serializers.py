@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 import uuid
-from .models import School, ClassRoom, Course, StudentAttendance, Student, Teacher, TeacherAttendance, TeacherCourseAssignment, TeacherClassAssignment, Enrollment, TeacherKYC, TeacherSalary, TeacherCompensationRule, TeacherSalarySlip
+from .models import School, ClassRoom, Course, StudentAttendance, Student, Teacher, TeacherAttendance, TeacherCourseAssignment, TeacherClassAssignment, Enrollment, TeacherKYC, TeacherSalary, TeacherCompensationRule, TeacherSalarySlip, TeacherInvoice
 
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
@@ -859,3 +859,31 @@ class StudentAttendanceSerializer(serializers.ModelSerializer):
         read_only_fields = ["marked_by", "marked_at", "approved_by", "approved_at"]
 
 # StudentSerializer is defined above (near line 285) — do not duplicate here.
+
+
+class TeacherInvoiceSerializer(serializers.ModelSerializer):
+    teacher_name = serializers.CharField(source='teacher.name', read_only=True)
+    school_name = serializers.CharField(source='school.name', read_only=True)
+    generated_by_name = serializers.CharField(source='generated_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = TeacherInvoice
+        fields = [
+            'id', 'invoice_number',
+            'teacher', 'teacher_name',
+            'school', 'school_name',
+            'month', 'year',
+            'base_salary', 'total_hours', 'total_classes',
+            'commission_rate', 'commission_amount',
+            'tax_rate', 'tax_amount',
+            'adjustments', 'gross_amount', 'net_amount',
+            'status', 'notes',
+            'generated_by', 'generated_by_name',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'invoice_number', 'teacher', 'school',
+            'month', 'year', 'base_salary', 'total_hours', 'total_classes',
+            'commission_rate', 'commission_amount',
+            'generated_by', 'created_at', 'updated_at',
+        ]

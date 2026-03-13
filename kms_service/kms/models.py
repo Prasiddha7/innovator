@@ -367,3 +367,54 @@ class TeacherKYC(models.Model):
     def __str__(self):
         return f"{self.teacher.name} - KYC ({self.status})"
 
+
+class InvoiceStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+    ISSUED = "ISSUED", "Issued"
+    PAID = "PAID", "Paid"
+    CANCELLED = "CANCELLED", "Cancelled"
+
+
+class TeacherInvoice(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice_number = models.CharField(max_length=50, unique=True)
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='invoices')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='teacher_invoices')
+    month = models.IntegerField()  # 1-12
+    year = models.IntegerField()
+
+    # Salary breakdown
+    base_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_hours = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    total_classes = models.IntegerField(default=0)
+
+    # Commission
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Commission % (e.g., 5.00)")
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Tax
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=13.00, help_text="Tax % (e.g., 13.00)")
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Totals
+    adjustments = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Manual additions/deductions")
+    gross_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="base + commission + adjustments")
+    net_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="gross - tax")
+
+    status = models.CharField(
+        max_length=20,
+        choices=InvoiceStatus.choices,
+        default=InvoiceStatus.DRAFT,
+    )
+    notes = models.TextField(null=True, blank=True)
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_invoices')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('teacher', 'school', 'month', 'year')
+        ordering = ['-year', '-month', '-created_at']
+
+    def __str__(self):
+        return f"{self.invoice_number} - {self.teacher.name} ({self.status})"

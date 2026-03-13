@@ -6,6 +6,7 @@ from kms.apis.administrator import ClassRoomView, SchoolView, TeacherSchoolAssig
 from kms.apis.teacher import TeacherAttendanceViewSet, TeacherProfileView, TeacherClassAssignmentView
 from kms.apis.teacher_detailed import TeacherKYCUploadView, TeacherEarningsView, TeacherSalarySlipsView
 from kms.apis.students import AttendanceApproveAPIView, AttendanceListAPIView, StudentCSVUploadAPIView, StudentCreateAPIView, AttendanceMarkAPIView, BulkMarkAttendanceAPIView, BulkAttendanceApproveAPIView
+from kms.apis.teacher_invoice import GenerateTeacherInvoiceView, TeacherInvoiceManagementView
 
 
 urlpatterns = [
@@ -29,7 +30,11 @@ urlpatterns = [
     path("admin/salary-slips/generate/", GenerateSalarySlipsView.as_view(), name='generate-salary-slips'),
     path("admin/salary-slips/", SalarySlipManagementView.as_view(), name='salary-slips-list'),
     path("admin/salary-slips/<str:slip_id>/", SalarySlipManagementView.as_view(), name='salary-slips-detail'),
-    
+
+    # Teacher Invoices
+    path("admin/teacher-invoices/generate/", GenerateTeacherInvoiceView.as_view(), name='generate-teacher-invoices'),
+    path("admin/teacher-invoices/", TeacherInvoiceManagementView.as_view(), name='teacher-invoices-list'),
+    path("admin/teacher-invoices/<str:invoice_id>/", TeacherInvoiceManagementView.as_view(), name='teacher-invoice-detail'),
 
     path("coordinator/teacher-attendance/", TeacherAttendanceSupervisionView.as_view(), name='coordinator-teacher-attendance'),
     path("coordinator/teacher-attendance/<str:attendance_id>/", TeacherAttendanceSupervisionView.as_view(), name='coordinator-teacher-attendance-detail'),
@@ -54,8 +59,4 @@ urlpatterns = [
     path("students/attendance/bulk-approve/", BulkAttendanceApproveAPIView.as_view(), name='student-attendance-bulk-approve'),
     path("attendance/mark/", AttendanceMarkAPIView.as_view(), name='attendance-mark'),
     path("attendance/approve/<uuid:attendance_id>/", AttendanceApproveAPIView.as_view(), name='attendance-approve'),
-
-    # Teacher Salary (already registered but ensuring it works for the teacher)
-    # path('teacher/salary-slips/', TeacherSalarySlipsView.as_view(), name='teacher-salary-slips'),
-
 ]

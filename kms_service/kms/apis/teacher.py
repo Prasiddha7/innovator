@@ -90,16 +90,23 @@ class TeacherProfileView(APIView):
             school_commission = school_slips.aggregate(Sum('commission'))['commission__sum'] or 0
             school_projected = slips.filter(school=school, status=SalarySlipStatus.DRAFT).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
             
-            # Count distinct classes taught in this school from TeacherClassAssignment
-            classes_count = TeacherClassAssignment.objects.filter(teacher=teacher, school=school).count()
+            # Get classrooms assigned to this teacher in this school
+            class_assignments = TeacherClassAssignment.objects.filter(
+                teacher=teacher, school=school
+            ).select_related('classroom')
+            classrooms = [
+                {'id': str(a.classroom.id), 'name': a.classroom.name}
+                for a in class_assignments
+            ]
             
             salary_breakdown.append({
                 'school_id': str(school.id),
                 'school_name': school.name,
+                'classrooms': classrooms,
                 'total_earnings': float(school_total),
                 'total_commission': float(school_commission),
                 'projected_earnings': float(school_projected),
-                'classes_count': classes_count,
+                'classes_count': len(classrooms),
             })
 
         return Response({
