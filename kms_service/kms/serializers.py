@@ -283,33 +283,52 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'user_id', 'name', 'email', 'username', 'phone_number', 'is_active']
 
 class StudentSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=True, allow_blank=False)
     school = serializers.CharField(write_only=True, help_text="School name or UUID")
     school_name = serializers.CharField(source='school.name', read_only=True)
+    classroom = serializers.CharField(write_only=True, required=False, allow_null=True, help_text="Classroom UUID")
+    classroom_name = serializers.CharField(source='classroom.name', read_only=True, default=None)
 
     class Meta:
         model = Student
-        fields = ['id', 'name', 'school', 'school_name']
-    
+        fields = [
+            'id', 'name', 'school', 'school_name',
+            'classroom', 'classroom_name',
+            'address', 'phone_number', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+
     def validate_school(self, value):
         """Convert school name or UUID to School instance"""
+        if not value:
+            raise serializers.ValidationError("School is required.")
         try:
-            school = School.objects.get(id=value)
-            return school
+            return School.objects.get(id=value)
         except (School.DoesNotExist, ValueError):
             pass
-        
         try:
             lookup_uuid = uuid.UUID(str(value))
-            school = School.objects.get(id=lookup_uuid)
-            return school
+            return School.objects.get(id=lookup_uuid)
         except (ValueError, School.DoesNotExist):
             pass
-        
         try:
-            school = School.objects.get(name=value)
-            return school
+            return School.objects.get(name=value)
         except School.DoesNotExist:
             raise serializers.ValidationError(f"School '{value}' not found. Use school name or UUID.")
+
+    def validate_classroom(self, value):
+        """Convert classroom UUID to ClassRoom instance"""
+        if not value:
+            return None
+        try:
+            return ClassRoom.objects.get(id=value)
+        except (ClassRoom.DoesNotExist, ValueError):
+            pass
+        try:
+            lookup_uuid = uuid.UUID(str(value))
+            return ClassRoom.objects.get(id=lookup_uuid)
+        except (ValueError, ClassRoom.DoesNotExist):
+            raise serializers.ValidationError(f"Classroom '{value}' not found.")
 
 class StudentAttendanceDetailSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.name', read_only=True)
@@ -839,36 +858,4 @@ class StudentAttendanceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["marked_by", "marked_at", "approved_by", "approved_at"]
 
-class StudentSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(required=True, allow_blank=False)
-    school = serializers.CharField(write_only=True, help_text="School name or UUID")
-    school_name = serializers.CharField(source='school.name', read_only=True)
-    
-    class Meta:
-        model = Student
-        fields = [
-            "id",
-            "name",
-            "school",
-            "school_name",
-            "classroom",
-            "address",
-            "phone_number",
-            "created_at",
-        ]
-        read_only_fields = ["id", "created_at"]
-
-    def validate_name(self, value):
-        if not value:
-            raise serializers.ValidationError("Name is required")
-        return value
-
-    def validate_classroom(self, value):
-        if value is None:
-            raise serializers.ValidationError("Classroom is required")
-        return value
-
-    def validate_school(self, value):
-        if value is None:
-            raise serializers.ValidationError("School is required")
-        return value
+# StudentSerializer is defined above (near line 285) — do not duplicate here.
