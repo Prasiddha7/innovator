@@ -28,32 +28,48 @@ class CustomJWTAuthentication(JWTAuthentication):
                 raise exceptions.AuthenticationFailed("Token missing user_id")
 
             with transaction.atomic():
-                # 🔹 Step 1: Try to find user by ID
+                # 🔹 Step 1: Try to find user by ID (exact match from Auth service)
                 user = User.objects.filter(id=user_id).first()
                 created = False
 
                 if not user:
-                    # 🔹 Step 2: If not found by ID, check by username (to handle conflicts)
+                    # 🔹 Step 2: Check by username for ID conflicts
                     user = User.objects.filter(username=username).first()
-                    if user:
-                        # Conflict found!
-                        if user.id != user_id:
-                            logger.warning(f"Conflict found for '{username}': Existing ID {user.id} vs Auth ID {user_id}. Updating...")
-                            # Try to update the ID. If this fails due to FKs, we might need a deeper sync, 
-                            # but delete/recreate or manual fix is safer if it's a known conflict.
-                            try:
-                                User.objects.filter(id=user.id).update(id=user_id)
-                                user = User.objects.get(id=user_id)
-                            except Exception as e:
-                                logger.error(f"Failed to update User ID for {username}: {str(e)}")
-                                # Fallback: use existing user but we will log the issue.
-                                # Actually, if we use the existing user, the teacher id will remain 'wrong'.
-                                pass
-                    else:
-                        # 🔹 Step 3: Truly new user
+                    if user and str(user.id) != str(user_id):
+                        # Conflict: local user exists with a different ID
+                        old_id = str(user.id)
+                        logger.warning(
+                            f"Conflict found for '{username}': "
+                            f"Existing ID {old_id} vs Auth ID {user_id}. "
+                            f"Cascading update..."
+                        )
+                        try:
+                            # Use raw SQL to update the PK.
+                            # ON UPDATE CASCADE (from migration 0009) will
+                            # automatically propagate to kms_user_groups,
+                            # kms_teacher, kms_coordinator, kms_student, etc.
+                            from django.db import connection
+                            with connection.cursor() as cursor:
+                                cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+                                cursor.execute(
+                                    'UPDATE "kms_user" SET "id" = %s WHERE "id" = %s',
+                                    [str(user_id), old_id],
+                                )
+                            # Refresh the user object with the new ID
+                            user = User.objects.get(id=user_id)
+                            logger.info(f"Successfully updated User ID for '{username}' to {user_id}")
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to cascade-update User ID for '{username}': {e}",
+                                exc_info=True,
+                            )
+                            # Fallback: just use the existing user as-is
+                            user = User.objects.filter(username=username).first()
+                    elif not user:
+                        # 🔹 Step 3: Truly new user – create
                         user = User.objects.create(
                             id=user_id,
-                            username=username or f"user_{user_id[:8]}",
+                            username=username or f"user_{str(user_id)[:8]}",
                             email=email,
                             role=role,
                             is_active=True,
@@ -78,7 +94,8 @@ class CustomJWTAuthentication(JWTAuthentication):
                 # 🔹 Assign Group if role exists
                 if role:
                     group, _ = Group.objects.get_or_create(name=role)
-                    user.groups.add(group)
+                    if not user.groups.filter(pk=group.pk).exists():
+                        user.groups.add(group)
 
                     # 🔹 Handle Staff Status
                     if role in ["admin", "coordinator"] and not user.is_staff:
@@ -96,10 +113,16 @@ class CustomJWTAuthentication(JWTAuthentication):
                                 "email": user.email,
                             },
                         )
-                        # Ensure Teacher ID matches User ID if they were out of sync
-                        if not t_created and t.id != user.id:
+                        # Ensure Teacher ID matches User ID
+                        if not t_created and str(t.id) != str(user.id):
                             logger.info(f"Syncing Teacher ID for {user.username} to {user.id}")
-                            Teacher.objects.filter(id=t.id).update(id=user.id)
+                            from django.db import connection
+                            with connection.cursor() as cursor:
+                                cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+                                cursor.execute(
+                                    'UPDATE "kms_teacher" SET "id" = %s WHERE "id" = %s',
+                                    [str(user.id), str(t.id)],
+                                )
                     elif role == "coordinator":
                         from kms.models import Coordinator
                         Coordinator.objects.get_or_create(
