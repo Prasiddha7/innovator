@@ -6,7 +6,7 @@ from rest_framework import status
 from django.utils import timezone
 from django.db import transaction
 from kms.models import School, ClassRoom, Student, StudentAttendance, Teacher
-from kms.permissions import IsTeacherUser
+from kms.permissions import IsTeacherUser, IsStudentUser
 from rest_framework.permissions import IsAuthenticated
 from kms.serializers import StudentAttendanceSerializer, StudentSerializer
 
@@ -81,12 +81,28 @@ class StudentCSVUploadAPIView(APIView):
         }, status=status.HTTP_201_CREATED if created_count > 0 else status.HTTP_400_BAD_REQUEST)
 
 class AttendanceListAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsTeacherUser]
+    permission_classes = [IsAuthenticated, (IsTeacherUser | IsStudentUser)]
 
     def get(self, request):
         queryset = StudentAttendance.objects.all()
+
+        # Role-based filtering
+        role = request.auth.get('role') if request.auth else None
+
+        if role == 'student':
+            # Students only see their own attendance
+            student = Student.objects.filter(user=request.user).first()
+            if student:
+                queryset = queryset.filter(student=student)
+            else:
+                return Response([]) 
+        elif role in ['teacher', 'coordinator', 'admin']:
+            # Teachers/Admins can see everything but can filter by query params
+            pass 
+        else:
+            return Response({"detail": "Role not authorized"}, status=403)
         
-        # Date filters
+        # Shared filters for both roles (if applicable)
         date = request.query_params.get('date')
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
@@ -98,15 +114,19 @@ class AttendanceListAPIView(APIView):
         if end_date:
             queryset = queryset.filter(date__lte=end_date)
             
-        # Teacher filter (who approved/marked)
-        teacher_id = request.query_params.get('teacher_id')
-        if teacher_id:
-            queryset = queryset.filter(teacher_id=teacher_id)
-            
-        # Approved by teacher filter
-        approved_by = request.query_params.get('approved_by')
-        if approved_by:
-            queryset = queryset.filter(approved_by=approved_by)
+        # Specific teacher/admin filters
+        if role in ['teacher', 'coordinator', 'admin']:
+            teacher_id = request.query_params.get('teacher_id')
+            if teacher_id:
+                queryset = queryset.filter(teacher_id=teacher_id)
+                
+            approved_by = request.query_params.get('approved_by')
+            if approved_by:
+                queryset = queryset.filter(approved_by=approved_by)
+
+            student_id = request.query_params.get('student_id')
+            if student_id:
+                queryset = queryset.filter(student_id=student_id)
 
         # Status filter
         status_val = request.query_params.get('status')
@@ -172,6 +192,11 @@ class AttendanceApproveAPIView(APIView):
 class StudentCreateAPIView(APIView):
     permission_classes = [IsAuthenticated, IsTeacherUser]
 
+    def get(self, request):
+        students = Student.objects.all()
+        serializer = StudentSerializer(students, many=True)
+        return Response(serializer.data)
+
     def post(self, request):
         # Allow passing 'id' explicitly if needed, but otherwise auto-generate
         serializer = StudentSerializer(data=request.data)
@@ -179,5 +204,74 @@ class StudentCreateAPIView(APIView):
         if serializer.is_valid():
             student = serializer.save()
             return Response(StudentSerializer(student).data, status=201)
+
+        return Response(serializer.errors, status=400)
+
+
+class BulkAttendanceApproveAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsTeacherUser]
+
+    def post(self, request):
+        from kms.serializers import BulkAttendanceApprovalSerializer
+        serializer = BulkAttendanceApprovalSerializer(data=request.data)
+
+        if serializer.is_valid():
+            attendance_ids = serializer.validated_data['attendance_ids']
+            action = serializer.validated_data['action']
+            notes = serializer.validated_data.get('notes', "")
+
+            with transaction.atomic():
+                updated_count = StudentAttendance.objects.filter(id__in=attendance_ids).update(
+                    approved=action,
+                    approved_by=str(request.user.id),
+                    approved_at=timezone.now(),
+                    notes=notes
+                )
+
+            return Response({
+                "message": f"Successfully {action.lower()} {updated_count} records",
+                "updated_count": updated_count
+            })
+
+        return Response(serializer.errors, status=400)
+
+class BulkMarkAttendanceAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsTeacherUser]
+
+    def post(self, request):
+        from kms.serializers import BulkMarkAttendanceSerializer
+        serializer = BulkMarkAttendanceSerializer(data=request.data)
+
+        if serializer.is_valid():
+            classroom_id = serializer.validated_data['classroom_id']
+            classroom = ClassRoom.objects.get(id=classroom_id)
+            date = serializer.validated_data['date']
+            attendances_data = serializer.validated_data['attendances']
+            teacher = getattr(request.user, "teacher", None)
+
+            created_records = []
+            for item in attendances_data:
+                # Use per-item classroom/date if provided, otherwise use top-level
+                item_student = item['student']
+                item_classroom = item.get('classroom') or classroom
+                item_date = item.get('date') or date
+                item_status = item['status']
+                item_notes = item.get('notes', "")
+
+                attendance, created = StudentAttendance.objects.update_or_create(
+                    student=item_student,
+                    classroom=item_classroom,
+                    date=item_date,
+                    defaults={
+                        "status": item_status,
+                        "teacher": teacher,
+                        "marked_by": teacher,
+                        "marked_at": timezone.now(),
+                        "notes": item_notes
+                    }
+                )
+                created_records.append(attendance)
+
+            return Response(StudentAttendanceSerializer(created_records, many=True).data, status=201)
 
         return Response(serializer.errors, status=400)

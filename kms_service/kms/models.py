@@ -20,6 +20,9 @@ class UserManager(BaseUserManager):
         elif role == "coordinator":
             from kms.models import Coordinator
             Coordinator.objects.get_or_create(user=user, defaults={'id': user.id, 'name': username})
+        elif role == "student":
+            from kms.models import Student
+            Student.objects.get_or_create(user=user, defaults={'id': user.id, 'name': username})
         return user
 
     def create_superuser(self, username, email=None, password=None, **extra_fields):
@@ -252,6 +255,7 @@ class TeacherCourseAssignment(models.Model):
 #Student and Enrollment
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=255,null=True,blank=False)
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     classroom = models.ForeignKey(ClassRoom, on_delete=models.SET_NULL, null=True, blank=True)

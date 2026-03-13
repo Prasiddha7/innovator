@@ -39,3 +39,11 @@ class IsPrincipal(permissions.BasePermission):
         is_principal_role = role == 'principal'
         has_principal_group = request.user.groups.filter(name='principal').exists()
         return is_principal_role or has_principal_group
+
+class IsStudentUser(permissions.BasePermission):
+    """Allow access to students"""
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        role = request.auth.get('role') if request.auth else None
+        return role == 'student' or request.user.groups.filter(name='student').exists()

@@ -107,16 +107,15 @@ class TeacherAttendanceSupervisionView(APIView):
         if isinstance(coord, dict):
             return Response({"detail": coord["error"]}, status=403)
 
+        from kms.models import TeacherAttendance, TeacherSalary
         try:
             attendance = TeacherAttendance.objects.get(id=attendance_id)
         except TeacherAttendance.DoesNotExist:
             return Response({"detail": "Attendance not found"}, status=404)
 
-        if not TeacherSalary.objects.filter(
-            teacher=attendance.teacher,
-            school=coord.school,
-        ).exists():
-            return Response({"detail": "Not authorized"}, status=403)
+        # Check if coordinator school matches attendance school
+        if attendance.school != coord.school:
+            return Response({"detail": "Not authorized: School mismatch"}, status=403)
 
         action = request.data.get("action")
 
@@ -128,7 +127,7 @@ class TeacherAttendanceSupervisionView(APIView):
 
         attendance.status = "APPROVED" if action == "approve" else "REJECTED"
         attendance.supervised_at = timezone.now()
-        attendance.supervised_by = str(coord.user.id)
+        attendance.supervised_by = f"Coordinator: {coord.user.username} ({coord.user.id})"
         attendance.save()
 
         return Response(
@@ -136,5 +135,7 @@ class TeacherAttendanceSupervisionView(APIView):
                 "id": str(attendance.id),
                 "status": attendance.status,
                 "message": f"Attendance {action}d successfully",
+                "supervised_by": attendance.supervised_by,
+                "supervised_at": attendance.supervised_at
             }
         )
