@@ -1,6 +1,10 @@
 from django.urls import path
 from kms.views import UserSyncView, UserDetailView
-from kms.apis.coordinator import TeacherAttendanceSupervisionView
+from kms.apis.coordinator import (
+    TeacherAttendanceSupervisionView,
+    CoordinatorInvoiceListView,
+    CoordinatorStudentAttendanceApprovalView
+)
 from kms.apis.coordinator_assignment import CoordinatorSchoolAssignmentView
 from kms.apis.administrator import (
     ClassRoomView, SchoolView, TeacherSchoolAssignmentView, 
@@ -71,4 +75,8 @@ urlpatterns = [
     path('admin/coordinator-invoices/', CoordinatorInvoiceView.as_view(), name='coordinator-invoice-list'),
     path('admin/coordinator-invoices/<uuid:invoice_id>/', CoordinatorInvoiceView.as_view(), name='coordinator-invoice-detail'),
     path('admin/send-coordinator-invoice/', SendCoordinatorInvoiceView.as_view(), name='send-coordinator-invoice'),
+    
+    # Coordinator Portal
+    path('coordinator/invoices/', CoordinatorInvoiceListView.as_view(), name='coordinator-invoice-list'),
+    path('coordinator/student-attendance/approve/', CoordinatorStudentAttendanceApprovalView.as_view(), name='coordinator-student-attendance-approve'),
 ]

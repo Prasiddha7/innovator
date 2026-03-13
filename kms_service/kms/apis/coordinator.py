@@ -10,8 +10,10 @@ from datetime import datetime, timedelta
 from kms.authentication import CustomJWTAuthentication
 from kms.permissions import IsCoordinatorUser
 from kms.models import (
-     Coordinator, Teacher, TeacherAttendance, TeacherSalary
+     Coordinator, Teacher, TeacherAttendance, TeacherSalary, 
+     CoordinatorInvoice, StudentAttendance
 )
+from kms.serializers import CoordinatorInvoiceSerializer
 
 
 class TeacherAttendanceSupervisionView(APIView):
@@ -139,3 +141,58 @@ class TeacherAttendanceSupervisionView(APIView):
                 "supervised_at": attendance.supervised_at
             }
         )
+
+
+class CoordinatorInvoiceListView(APIView):
+    """
+    Coordinator retrieves invoices sent by Admin for their assigned school.
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsCoordinatorUser]
+
+    def get(self, request):
+        try:
+            coord = Coordinator.objects.get(user=request.user)
+            if not coord.school:
+                return Response({"detail": "Coordinator not assigned to a school."}, status=403)
+            
+            invoices = CoordinatorInvoice.objects.filter(school_id=coord.school.id).order_by('-created_at')
+            serializer = CoordinatorInvoiceSerializer(invoices, many=True)
+            return Response(serializer.data)
+        except Coordinator.DoesNotExist:
+            return Response({"detail": "Coordinator profile not found."}, status=404)
+
+
+class CoordinatorStudentAttendanceApprovalView(APIView):
+    """
+    Coordinator approves student attendance marked by teachers.
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsCoordinatorUser]
+
+    def post(self, request):
+        try:
+            coord = Coordinator.objects.get(user=request.user)
+            if not coord.school:
+                return Response({"detail": "Coordinator not assigned to a school."}, status=403)
+            
+            attendance_ids = request.data.get("attendance_ids", [])
+            if not attendance_ids:
+                return Response({"detail": "No attendance_ids provided"}, status=400)
+
+            # Only allow approving attendance within the coordinator's school
+            updated_count = StudentAttendance.objects.filter(
+                id__in=attendance_ids,
+                classroom__school=coord.school,
+                approved=False
+            ).update(
+                approved=True,
+                notes=request.data.get("notes", "") # Optional notes to add to all
+            )
+
+            return Response({
+                "message": f"Successfully approved {updated_count} student attendance records.",
+                "updated_count": updated_count
+            })
+        except Coordinator.DoesNotExist:
+            return Response({"detail": "Coordinator profile not found."}, status=404)
