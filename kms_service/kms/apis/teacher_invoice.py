@@ -332,6 +332,10 @@ class TeacherInvoiceManagementView(APIView):
             invoice.tax_amount = invoice.gross_amount * invoice.tax_rate / Decimal('100')
             invoice.net_amount = invoice.gross_amount - invoice.tax_amount
 
+        bank_qr_code = request.data.get('bank_qr_code')
+        if bank_qr_code is not None:
+            invoice.bank_qr_code = bank_qr_code
+
         invoice.save()
 
         return Response(TeacherInvoiceSerializer(invoice).data)

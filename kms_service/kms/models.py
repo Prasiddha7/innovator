@@ -371,6 +371,8 @@ class TeacherKYC(models.Model):
 class InvoiceStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
     ISSUED = "ISSUED", "Issued"
+    PENDING_APPROVAL = "PENDING_APPROVAL", "Pending Approval"
+    APPROVED = "APPROVED", "Approved"
     PAID = "PAID", "Paid"
     CANCELLED = "CANCELLED", "Cancelled"
 
@@ -407,6 +409,7 @@ class TeacherInvoice(models.Model):
         default=InvoiceStatus.DRAFT,
     )
     notes = models.TextField(null=True, blank=True)
+    bank_qr_code = models.URLField(max_length=500, null=True, blank=True, help_text="URL to the uploaded bank QR code image")
     generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_invoices')
 
     created_at = models.DateTimeField(auto_now_add=True)

@@ -6,7 +6,10 @@ from kms.apis.administrator import ClassRoomView, SchoolView, TeacherSchoolAssig
 from kms.apis.teacher import TeacherAttendanceViewSet, TeacherProfileView, TeacherClassAssignmentView
 from kms.apis.teacher_detailed import TeacherKYCUploadView, TeacherEarningsView, TeacherSalarySlipsView
 from kms.apis.students import AttendanceApproveAPIView, AttendanceListAPIView, StudentCSVUploadAPIView, StudentCreateAPIView, AttendanceMarkAPIView, BulkMarkAttendanceAPIView, BulkAttendanceApproveAPIView
-from kms.apis.teacher_invoice import GenerateTeacherInvoiceView, TeacherInvoiceManagementView
+from kms.apis.teacher_invoice import (
+    GenerateTeacherInvoiceView,
+    TeacherInvoiceManagementView
+)
 
 
 urlpatterns = [
