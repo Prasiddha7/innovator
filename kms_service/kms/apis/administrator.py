@@ -40,6 +40,7 @@ def resolve_teacher(value):
     """Robustly find a teacher by ID, User ID, name, or username."""
     if not value:
         return None
+    value = str(value).strip()
 
     # Try UUID lookup if it looks like one
     if is_valid_uuid(value):
@@ -50,7 +51,7 @@ def resolve_teacher(value):
 
     # Fallback/Default: Try by name or username
     return Teacher.objects.filter(
-        Q(name=value) | Q(user__username=value)
+        Q(name__iexact=value) | Q(user__username__iexact=value)
     ).first()
 
 
@@ -58,24 +59,28 @@ def resolve_school(value):
     """Robustly find a school by ID or name."""
     if not value:
         return None
+    value = str(value).strip()
     if is_valid_uuid(value):
         school = School.objects.filter(id=value).first()
         if school:
             return school
-    return School.objects.filter(name=value).first()
-
+    return School.objects.filter(name__iexact=value).first()
 
 
 def resolve_classroom(value):
+    if not value: return None
+    value = str(value).strip()
     if is_valid_uuid(value):
         return ClassRoom.objects.filter(id=value).first()
-    return ClassRoom.objects.filter(name=value).first()
+    return ClassRoom.objects.filter(name__iexact=value).first()
 
 
 def resolve_course(value):
+    if not value: return None
+    value = str(value).strip()
     if is_valid_uuid(value):
         return Course.objects.filter(id=value).first()
-    return Course.objects.filter(title=value).first()
+    return Course.objects.filter(title__iexact=value).first()
 
 
 # ============================================================================
@@ -620,19 +625,12 @@ class TeacherSchoolAssignmentView(APIView):
             )
         
         # Find school by UUID or name
-        try:
-            school = School.objects.get(id=school_input)
-        except (School.DoesNotExist, ValueError):
-            try:
-                school = School.objects.get(id=uuid.UUID(str(school_input)))
-            except (ValueError, School.DoesNotExist):
-                try:
-                    school = School.objects.get(name=school_input)
-                except School.DoesNotExist:
-                    return Response(
-                        {"error": f"School '{school_input}' not found"},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
+        school = resolve_school(school_input)
+        if not school:
+            return Response(
+                {"error": f"School '{school_input}' not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         # Create or update TeacherSalary (which represents the assignment)
         salary, created = TeacherSalary.objects.get_or_create(
