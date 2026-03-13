@@ -678,16 +678,7 @@ class TeacherCompensationRuleView(APIView):
             if not teacher:
                 return Response({"error": f"Teacher '{teacher_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
                 
-            if is_valid_uuid(school_input):
-                try:
-                    school = School.objects.get(id=school_input)
-                except School.DoesNotExist:
-                    school = None
-            else:
-                try:
-                    school = School.objects.get(name=school_input)
-                except School.DoesNotExist:
-                    school = None
+            school = resolve_school(school_input)
             
             if not school:
                 return Response({"error": f"School '{school_input}' not found"}, status=status.HTTP_404_NOT_FOUND)
