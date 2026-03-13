@@ -2,7 +2,12 @@ from django.urls import path
 from kms.views import UserSyncView, UserDetailView
 from kms.apis.coordinator import TeacherAttendanceSupervisionView
 from kms.apis.coordinator_assignment import CoordinatorSchoolAssignmentView
-from kms.apis.administrator import ClassRoomView, SchoolView, TeacherSchoolAssignmentView, TeacherCompensationRuleView, GenerateSalarySlipsView, SalarySlipManagementView
+from kms.apis.administrator import (
+    ClassRoomView, SchoolView, TeacherSchoolAssignmentView, 
+    TeacherCompensationRuleView, GenerateSalarySlipsView, 
+    SalarySlipManagementView, CoordinatorInvoiceView, 
+    SendCoordinatorInvoiceView
+)
 from kms.apis.teacher import TeacherAttendanceViewSet, TeacherProfileView, TeacherClassAssignmentView
 from kms.apis.teacher_detailed import TeacherKYCUploadView, TeacherEarningsView, TeacherSalarySlipsView
 from kms.apis.students import AttendanceApproveAPIView, AttendanceListAPIView, StudentCSVUploadAPIView, StudentCreateAPIView, AttendanceMarkAPIView, BulkMarkAttendanceAPIView, BulkAttendanceApproveAPIView
@@ -62,4 +67,8 @@ urlpatterns = [
     path("students/attendance/bulk-approve/", BulkAttendanceApproveAPIView.as_view(), name='student-attendance-bulk-approve'),
     path("attendance/mark/", AttendanceMarkAPIView.as_view(), name='attendance-mark'),
     path("attendance/approve/<uuid:attendance_id>/", AttendanceApproveAPIView.as_view(), name='attendance-approve'),
+    # Coordinator Invoices
+    path('admin/coordinator-invoices/', CoordinatorInvoiceView.as_view(), name='coordinator-invoice-list'),
+    path('admin/coordinator-invoices/<uuid:invoice_id>/', CoordinatorInvoiceView.as_view(), name='coordinator-invoice-detail'),
+    path('admin/send-coordinator-invoice/', SendCoordinatorInvoiceView.as_view(), name='send-coordinator-invoice'),
 ]

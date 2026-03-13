@@ -420,3 +420,43 @@ class TeacherInvoice(models.Model):
 
     def __str__(self):
         return f"{self.invoice_number} - {self.teacher.name} ({self.status})"
+
+
+class CoordinatorInvoice(models.Model):
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("partial", "Partially Paid"),
+        ("paid", "Paid"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school_id = models.UUIDField()  # coming from school service or kms school model
+    invoice_number = models.CharField(max_length=100, unique=True)
+
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    due_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    description = models.TextField(blank=True)
+    issue_date = models.DateField()
+    due_date = models.DateField()
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    bank_qr_code = models.ImageField(upload_to='coordinator_invoices/qrs/', null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        self.due_amount = self.total_amount - self.paid_amount
+
+        if self.paid_amount == 0:
+            self.status = "pending"
+        elif self.paid_amount < self.total_amount:
+            self.status = "partial"
+        else:
+            self.status = "paid"
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoice_number

@@ -9,7 +9,8 @@ from django.db.models import Count, Q
 from kms.models import (
     School, ClassRoom, Course, TeacherKYC, TeacherClassAssignment, TeacherCourseAssignment,
     Teacher, TeacherSalary, Student, StudentAttendance,
-    TeacherCompensationRule, TeacherSalarySlip, PaymentType, SalarySlipStatus
+    TeacherCompensationRule, TeacherSalarySlip, PaymentType, SalarySlipStatus,
+    CoordinatorInvoice
 )
 from kms.serializers import (
     ClassRoomSerializer,
@@ -18,11 +19,10 @@ from kms.serializers import (
     TeacherClassAssignmentSerializer,
     TeacherKYCSerializer,
     TeacherCompensationRuleSerializer,
-    TeacherSalarySlipSerializer
-    # SchoolSerializer, ClassRoomSerializer, CourseSerializer,
-    # TeacherClassAssignmentSerializer, TeacherCourseAssignmentSerializer, TeacherKYCSerializer,
-    # AdminTeacherAssignmentSerializer, BulkTeacherAssignmentSerializer
+    TeacherSalarySlipSerializer,
+    CoordinatorInvoiceSerializer
 )
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from kms.permissions import IsAdmin
 from kms.authentication import CustomJWTAuthentication
 from django.db import transaction
@@ -1132,3 +1132,87 @@ class SalarySlipManagementView(APIView):
 #             },
 #             status=200
 #         )
+
+
+# ============================================================================
+# COORDINATOR INVOICE MANAGEMENT
+# ============================================================================
+
+class CoordinatorInvoiceView(APIView):
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request, invoice_id=None):
+        if invoice_id:
+            try:
+                invoice = CoordinatorInvoice.objects.get(id=invoice_id)
+                return Response(CoordinatorInvoiceSerializer(invoice).data)
+            except CoordinatorInvoice.DoesNotExist:
+                return Response({"detail": "Invoice not found"}, status=404)
+
+        invoices = CoordinatorInvoice.objects.all().order_by('-created_at')
+        school_id = request.query_params.get('school_id')
+        if school_id:
+            invoices = invoices.filter(school_id=school_id)
+
+        return Response(CoordinatorInvoiceSerializer(invoices, many=True).data)
+
+    def post(self, request):
+        serializer = CoordinatorInvoiceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, invoice_id):
+        try:
+            invoice = CoordinatorInvoice.objects.get(id=invoice_id)
+        except CoordinatorInvoice.DoesNotExist:
+            return Response({"detail": "Invoice not found"}, status=404)
+
+        serializer = CoordinatorInvoiceSerializer(invoice, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, invoice_id):
+        try:
+            invoice = CoordinatorInvoice.objects.get(id=invoice_id)
+            invoice.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except CoordinatorInvoice.DoesNotExist:
+            return Response({"detail": "Invoice not found"}, status=404)
+
+
+class SendCoordinatorInvoiceView(APIView):
+    """
+    Specific endpoint to attach Admin QR and send (or just update) a coordinator invoice.
+    Expected payload: invoice_id, bank_qr_code (file).
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        invoice_id = request.data.get('invoice_id')
+        bank_qr_code = request.FILES.get('bank_qr_code')
+
+        if not invoice_id:
+            return Response({"error": "invoice_id is required"}, status=400)
+        if not bank_qr_code:
+            return Response({"error": "bank_qr_code image is required"}, status=400)
+
+        try:
+            invoice = CoordinatorInvoice.objects.get(id=invoice_id)
+        except (CoordinatorInvoice.DoesNotExist, ValueError):
+            return Response({"error": "Coordinator Invoice not found"}, status=404)
+
+        invoice.bank_qr_code = bank_qr_code
+        invoice.save()
+
+        return Response({
+            "message": "QR code attached and invoice prepared for sender",
+            "invoice": CoordinatorInvoiceSerializer(invoice).data
+        })

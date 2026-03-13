@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 import uuid
-from .models import School, ClassRoom, Course, StudentAttendance, Student, Teacher, TeacherAttendance, TeacherCourseAssignment, TeacherClassAssignment, Enrollment, TeacherKYC, TeacherSalary, TeacherCompensationRule, TeacherSalarySlip, TeacherInvoice
+from .models import School, ClassRoom, Course, StudentAttendance, Student, Teacher, TeacherAttendance, TeacherCourseAssignment, TeacherClassAssignment, Enrollment, TeacherKYC, TeacherSalary, TeacherCompensationRule, TeacherSalarySlip, TeacherInvoice, CoordinatorInvoice
 
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
@@ -233,6 +233,16 @@ class TeacherSalarySlipSerializer(serializers.ModelSerializer):
         if instance.teacher and instance.teacher.user:
             data['teacher'] = str(instance.teacher.user.id)
         return data
+
+class CoordinatorInvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CoordinatorInvoice
+        fields = [
+            'id', 'school_id', 'invoice_number', 'total_amount', 
+            'paid_amount', 'due_amount', 'description', 
+            'issue_date', 'due_date', 'status', 'bank_qr_code', 'created_at'
+        ]
+        read_only_fields = ['id', 'due_amount', 'created_at']
 
 class TeacherKYCSerializer(serializers.ModelSerializer):
     bank_account_number = serializers.CharField(required=True, allow_blank=False)
