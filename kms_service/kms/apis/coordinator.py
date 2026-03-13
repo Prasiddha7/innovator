@@ -170,6 +170,39 @@ class CoordinatorStudentAttendanceApprovalView(APIView):
     authentication_classes = [CustomJWTAuthentication]
     permission_classes = [IsAuthenticated, IsCoordinatorUser]
 
+    def get(self, request):
+        """List PENDING student attendance for coordinator's school"""
+        try:
+            coord = Coordinator.objects.get(user=request.user)
+            if not coord.school:
+                return Response({"detail": "Coordinator not assigned to a school."}, status=403)
+            
+            # Find all student attendance for this school that is PENDING
+            attendances = StudentAttendance.objects.filter(
+                classroom__school=coord.school,
+                approved="PENDING"
+            ).select_related('student', 'classroom', 'teacher', 'marked_by').order_by('-date', '-marked_at')
+
+            data = [
+                {
+                    "id": str(att.id),
+                    "student_id": str(att.student.id),
+                    "student_name": att.student.name,
+                    "classroom_id": str(att.classroom.id),
+                    "classroom_name": att.classroom.name,
+                    "teacher_id": str(att.teacher.id),
+                    "teacher_name": att.teacher.name,
+                    "date": att.date.isoformat(),
+                    "status": att.status,
+                    "marked_by": str(att.marked_by.id) if att.marked_by else None,
+                    "marked_at": att.marked_at.isoformat() if att.marked_at else None,
+                    "notes": att.notes
+                } for att in attendances
+            ]
+            return Response({"total": len(data), "attendances": data})
+        except Coordinator.DoesNotExist:
+            return Response({"detail": "Coordinator profile not found."}, status=404)
+
     def post(self, request):
         try:
             coord = Coordinator.objects.get(user=request.user)
@@ -180,19 +213,25 @@ class CoordinatorStudentAttendanceApprovalView(APIView):
             if not attendance_ids:
                 return Response({"detail": "No attendance_ids provided"}, status=400)
 
-            # Only allow approving attendance within the coordinator's school
+            action = request.data.get("action", "approve") # Default to approve
+            status_val = "APPROVED" if action == "approve" else "REJECTED"
+
+            # Only allow updating attendance within the coordinator's school that is PENDING
             updated_count = StudentAttendance.objects.filter(
                 id__in=attendance_ids,
                 classroom__school=coord.school,
-                approved=False
+                approved="PENDING"
             ).update(
-                approved=True,
-                notes=request.data.get("notes", "") # Optional notes to add to all
+                approved=status_val,
+                approved_by=str(request.user.id),
+                approved_at=timezone.now(),
+                notes=request.data.get("notes", "") # Optional notes
             )
 
             return Response({
-                "message": f"Successfully approved {updated_count} student attendance records.",
-                "updated_count": updated_count
+                "message": f"Successfully {action}d {updated_count} student attendance records.",
+                "updated_count": updated_count,
+                "action": action
             })
         except Coordinator.DoesNotExist:
             return Response({"detail": "Coordinator profile not found."}, status=404)
