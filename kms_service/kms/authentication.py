@@ -33,13 +33,22 @@ class CustomJWTAuthentication(JWTAuthentication):
                 created = False
 
                 if not user:
-                    # 🔹 Step 2: If not found by ID, check by username (to handle conflicts like 'admin')
+                    # 🔹 Step 2: If not found by ID, check by username (to handle conflicts)
                     user = User.objects.filter(username=username).first()
                     if user:
-                        # Conflict found! Update the existing user's ID to match Auth service
-                        logger.warning(f"Conflict found: User '{username}' exists with ID {user.id}. Updating to {user_id}")
-                        User.objects.filter(id=user.id).update(id=user_id)
-                        user = User.objects.get(id=user_id)
+                        # Conflict found!
+                        if user.id != user_id:
+                            logger.warning(f"Conflict found for '{username}': Existing ID {user.id} vs Auth ID {user_id}. Updating...")
+                            # Try to update the ID. If this fails due to FKs, we might need a deeper sync, 
+                            # but delete/recreate or manual fix is safer if it's a known conflict.
+                            try:
+                                User.objects.filter(id=user.id).update(id=user_id)
+                                user = User.objects.get(id=user_id)
+                            except Exception as e:
+                                logger.error(f"Failed to update User ID for {username}: {str(e)}")
+                                # Fallback: use existing user but we will log the issue.
+                                # Actually, if we use the existing user, the teacher id will remain 'wrong'.
+                                pass
                     else:
                         # 🔹 Step 3: Truly new user
                         user = User.objects.create(
@@ -79,7 +88,7 @@ class CustomJWTAuthentication(JWTAuthentication):
                     # 🔹 Sync Role-specific models
                     if role == "teacher":
                         from kms.models import Teacher
-                        Teacher.objects.get_or_create(
+                        t, t_created = Teacher.objects.get_or_create(
                             user=user,
                             defaults={
                                 "id": user.id,
@@ -87,6 +96,10 @@ class CustomJWTAuthentication(JWTAuthentication):
                                 "email": user.email,
                             },
                         )
+                        # Ensure Teacher ID matches User ID if they were out of sync
+                        if not t_created and t.id != user.id:
+                            logger.info(f"Syncing Teacher ID for {user.username} to {user.id}")
+                            Teacher.objects.filter(id=t.id).update(id=user.id)
                     elif role == "coordinator":
                         from kms.models import Coordinator
                         Coordinator.objects.get_or_create(

@@ -165,23 +165,11 @@ class TeacherSalarySerializer(serializers.ModelSerializer):
     
     def validate_teacher(self, value):
         """Convert teacher name or UUID to Teacher instance"""
-        try:
-            teacher = Teacher.objects.get(id=value)
-            return teacher
-        except (Teacher.DoesNotExist, ValueError):
-            pass
-        
-        try:
-            teacher = Teacher.objects.get(id=uuid.UUID(str(value)))
-            return teacher
-        except (ValueError, Teacher.DoesNotExist):
-            pass
-        
-        try:
-            teacher = Teacher.objects.get(name=value)
-            return teacher
-        except Teacher.DoesNotExist:
+        from kms.apis.administrator import resolve_teacher
+        teacher = resolve_teacher(value)
+        if not teacher:
             raise serializers.ValidationError(f"Teacher '{value}' not found. Use teacher name or UUID.")
+        return teacher
 
 class TeacherCompensationRuleSerializer(serializers.ModelSerializer):
     school_name = serializers.CharField(source='school.name', read_only=True)
@@ -192,6 +180,13 @@ class TeacherCompensationRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherCompensationRule
         fields = ['id', 'school', 'school_name', 'teacher', 'teacher_name', 'payment_type', 'base_rate', 'commission_percentage', 'is_active', 'created_at']
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Ensure the teacher ID returned is the User ID (Auth ID)
+        if instance.teacher and instance.teacher.user:
+            data['teacher'] = str(instance.teacher.user.id)
+        return data
     
     def validate_school(self, value):
         from kms.apis.administrator import resolve_classroom, resolve_course # Using custom resolve if needed, but we can do UUID/Name parsing
@@ -231,6 +226,13 @@ class TeacherSalarySlipSerializer(serializers.ModelSerializer):
             'base_salary', 'commission', 'adjustments', 'net_salary', 
             'status', 'admin_override', 'override_notes', 'created_at'
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Ensure the teacher ID returned is the User ID (Auth ID)
+        if instance.teacher and instance.teacher.user:
+            data['teacher'] = str(instance.teacher.user.id)
+        return data
 
 class TeacherKYCSerializer(serializers.ModelSerializer):
     bank_account_number = serializers.CharField(required=True, allow_blank=False)
@@ -321,9 +323,9 @@ class StudentAttendanceDetailSerializer(serializers.ModelSerializer):
 class MarkAttendanceSerializer(serializers.Serializer):
     """Serializer for marking student attendance"""
     student_id = serializers.CharField(help_text="Student name or UUID")
-    # Accept either classroom UUID or classroom name
-    classroom_id = serializers.CharField(help_text="Classroom name or UUID")
-    date = serializers.DateField()
+    # Make these optional for use in bulk marking
+    classroom_id = serializers.CharField(required=False, help_text="Classroom name or UUID")
+    date = serializers.DateField(required=False)
     status = serializers.ChoiceField(
         choices=['present', 'absent', 'late', 'sick_leave', 'casual_leave']
     )
@@ -351,18 +353,25 @@ class MarkAttendanceSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Classroom '{value}' not found. Use classroom name or UUID.")
     
     def validate(self, data):
+        student_id = data.get('student_id')
+        if not student_id:
+            raise serializers.ValidationError({"student_id": "This field is required."})
+            
         try:
-            student = Student.objects.get(id=data['student_id'])
-        except Student.DoesNotExist:
-            raise serializers.ValidationError("Student not found")
+            student = Student.objects.get(id=student_id)
+            data['student'] = student
+        except (Student.DoesNotExist, ValueError):
+            raise serializers.ValidationError({"student_id": "Student not found"})
 
-        # `classroom_id` field now returns a ClassRoom instance
+        # classroom_id is optional at this level if provided at bulk level
         classroom = data.get('classroom_id')
-        if not classroom or not isinstance(classroom, ClassRoom):
-            raise serializers.ValidationError("Classroom not found")
+        if classroom:
+            if isinstance(classroom, ClassRoom):
+                data['classroom'] = classroom
+            else:
+                # This should have been handled by validate_classroom_id
+                pass
 
-        data['student'] = student
-        data['classroom'] = classroom
         # remove helper key to keep downstream code consistent
         data.pop('classroom_id', None)
         return data

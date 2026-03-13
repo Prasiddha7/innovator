@@ -37,24 +37,32 @@ def is_valid_uuid(value):
 
 
 def resolve_teacher(value):
-    # If UUID
-    if is_valid_uuid(value):
-        # 1️⃣ Try Teacher ID
-        teacher = Teacher.objects.filter(id=value).first()
-        if teacher:
-            return teacher
-
-        # 2️⃣ Try User ID
-        teacher = Teacher.objects.filter(user__id=value).first()
-        if teacher:
-            return teacher
-
+    """Robustly find a teacher by ID, User ID, name, or username."""
+    if not value:
         return None
 
-    # If not UUID → try username or teacher name
+    # Try UUID lookup if it looks like one
+    if is_valid_uuid(value):
+        # Check Teacher ID or User ID (Auth ID)
+        teacher = Teacher.objects.filter(Q(id=value) | Q(user__id=value)).first()
+        if teacher:
+            return teacher
+
+    # Fallback/Default: Try by name or username
     return Teacher.objects.filter(
         Q(name=value) | Q(user__username=value)
     ).first()
+
+
+def resolve_school(value):
+    """Robustly find a school by ID or name."""
+    if not value:
+        return None
+    if is_valid_uuid(value):
+        school = School.objects.filter(id=value).first()
+        if school:
+            return school
+    return School.objects.filter(name=value).first()
 
 
 
@@ -726,6 +734,7 @@ class GenerateSalarySlipsView(APIView):
         month = request.data.get('month')
         year = request.data.get('year')
         school_id = request.data.get('school')
+        teacher_id = request.data.get('teacher')
         
         if not month or not year:
             return Response({"error": "month and year are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -740,16 +749,37 @@ class GenerateSalarySlipsView(APIView):
              
         # Filter rules
         rules = TeacherCompensationRule.objects.filter(is_active=True)
+        active_salaries = TeacherSalary.objects.all()
+
         if school_id:
-            try:
-                school = School.objects.get(id=school_id)
+            school = resolve_school(school_id)
+            if school:
                 rules = rules.filter(school=school)
-            except (School.DoesNotExist, ValueError):
-                pass # If it fails, we ignore school filter or return error? We'll ignore and continue with all if school_id isn't valid uuid, or maybe filter. Let's just filter.
+                active_salaries = active_salaries.filter(school=school)
+            else:
+                # Fallback to ID filtering
                 rules = rules.filter(school_id=school_id)
-                
+                active_salaries = active_salaries.filter(school_id=school_id)
+
+        if teacher_id:
+            teacher = resolve_teacher(teacher_id)
+            if teacher:
+                rules = rules.filter(teacher=teacher)
+                active_salaries = active_salaries.filter(teacher=teacher)
+            else:
+                # Fallback to ID filtering
+                rules = rules.filter(teacher_id=teacher_id)
+                active_salaries = active_salaries.filter(teacher_id=teacher_id)
+
+        # Map to track which teacher-school pairs are already handled by rules
+        handled_pairs = set()
+
         generated_slips = []
+
+        # 1. Process explicit rules
         for rule in rules:
+            handled_pairs.add((rule.teacher_id, rule.school_id))
+            
             # Check if locked slip exists
             existing_slip = TeacherSalarySlip.objects.filter(
                 teacher=rule.teacher, school=rule.school, month=month, year=year
@@ -763,8 +793,6 @@ class GenerateSalarySlipsView(APIView):
             total_classes = 0
             base_salary = 0
             
-            from django.db.models.functions import ExtractMonth, ExtractYear
-            
             from decimal import Decimal
             
             # 1. FIXED_MONTHLY
@@ -774,6 +802,7 @@ class GenerateSalarySlipsView(APIView):
             # 2. HOURLY
             elif rule.payment_type == PaymentType.HOURLY:
                 # Find approved attendances for the month
+                from kms.models import TeacherAttendance
                 attendances = TeacherAttendance.objects.filter(
                     teacher=rule.teacher,
                     school=rule.school,
@@ -789,6 +818,7 @@ class GenerateSalarySlipsView(APIView):
             # 3. PER_CLASS
             elif rule.payment_type == PaymentType.PER_CLASS:
                 # Count approved attendances where teacher checked in
+                from kms.models import TeacherAttendance
                 attendances = TeacherAttendance.objects.filter(
                     teacher=rule.teacher,
                     school=rule.school,
@@ -823,11 +853,46 @@ class GenerateSalarySlipsView(APIView):
                 }
             )
             generated_slips.append(slip)
+
+        # 2. Process regular salaries (fallback)
+        for ts in active_salaries:
+            if (ts.teacher_id, ts.school_id) in handled_pairs:
+                continue
+
+            existing_slip = TeacherSalarySlip.objects.filter(
+                teacher=ts.teacher, school=ts.school, month=month, year=year
+            ).first()
+
+            if existing_slip and existing_slip.status != SalarySlipStatus.DRAFT:
+                continue
+
+            base_salary = Decimal(ts.monthly_salary)
+            adjustments = Decimal(existing_slip.adjustments) if existing_slip else Decimal('0.0')
+            net_salary = base_salary + adjustments
+
+            slip, created = TeacherSalarySlip.objects.update_or_create(
+                teacher=ts.teacher,
+                school=ts.school,
+                month=month,
+                year=year,
+                defaults={
+                    'total_hours': 0,
+                    'total_classes': 0,
+                    'base_salary': base_salary,
+                    'commission': 0,
+                    'adjustments': adjustments,
+                    'net_salary': net_salary,
+                    'status': SalarySlipStatus.DRAFT,
+                }
+            )
+            generated_slips.append(slip)
             
         serializer = TeacherSalarySlipSerializer(generated_slips, many=True)
         return Response({
-            "message": f"Successfully generated/updated {len(generated_slips)} draft salary slips.",
-            "slips": serializer.data
+            "slips": {
+                "message": f"Successfully generated/updated {len(generated_slips)} draft salary slips.",
+                "slips": serializer.data
+            }
         }, status=status.HTTP_200_OK)
 
 
@@ -856,7 +921,49 @@ class SalarySlipManagementView(APIView):
             "total": len(serializer.data),
             "slips": serializer.data
         })
+
+    def post(self, request):
+        """Manually create a salary slip"""
+        teacher_id = request.data.get('teacher')
+        school_id = request.data.get('school')
+        month = request.data.get('month')
+        year = request.data.get('year')
         
+        if not all([teacher_id, school_id, month, year]):
+            return Response({"error": "teacher, school, month, and year are required"}, status=400)
+        
+        teacher = resolve_teacher(teacher_id)
+        if not teacher:
+            return Response({"error": f"Teacher '{teacher_id}' not found"}, status=404)
+            
+        try:
+            school = School.objects.get(id=school_id)
+        except (School.DoesNotExist, ValueError):
+             return Response({"error": "School not found"}, status=404)
+
+        from decimal import Decimal
+        # Basic fields
+        base_salary = Decimal(request.data.get('base_salary', '0'))
+        commission = Decimal(request.data.get('commission', '0'))
+        adjustments = Decimal(request.data.get('adjustments', '0'))
+        net_salary = base_salary + commission + adjustments
+        
+        slip = TeacherSalarySlip.objects.create(
+            teacher=teacher,
+            school=school,
+            month=month,
+            year=year,
+            base_salary=base_salary,
+            commission=commission,
+            adjustments=adjustments,
+            net_salary=net_salary,
+            status=request.data.get('status', SalarySlipStatus.DRAFT),
+            admin_override=True,
+            override_notes=request.data.get('notes', 'Manually created by admin')
+        )
+        
+        return Response(TeacherSalarySlipSerializer(slip).data, status=201)
+
     def put(self, request, slip_id):
         """Update a specific salary slip (Lock, Adjust)"""
         try:
