@@ -877,7 +877,7 @@ class TeacherInvoiceSerializer(serializers.ModelSerializer):
             'commission_rate', 'commission_amount',
             'tax_rate', 'tax_amount',
             'adjustments', 'gross_amount', 'net_amount',
-            'status', 'notes', 'bank_qr_code',
+            'status', 'notes',
             'generated_by', 'generated_by_name',
             'created_at', 'updated_at',
         ]
@@ -885,5 +885,5 @@ class TeacherInvoiceSerializer(serializers.ModelSerializer):
             'id', 'invoice_number', 'teacher', 'school',
             'month', 'year', 'base_salary', 'total_hours', 'total_classes',
             'commission_rate', 'commission_amount',
-            'generated_by', 'created_at', 'updated_at', 'bank_qr_code',
+            'generated_by', 'created_at', 'updated_at',
         ]
