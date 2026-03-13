@@ -233,13 +233,16 @@ class GenerateTeacherInvoiceView(APIView):
 # TEACHER INVOICE MANAGEMENT (LIST / DETAIL / UPDATE)
 # ==========================================================================
 
+from rest_framework.parsers import MultiPartParser, FormParser
+
 class TeacherInvoiceManagementView(APIView):
     """
     GET:  List invoices (filterable) or get single invoice detail
-    PUT:  Update invoice status, adjustments, notes
+    PUT:  Update invoice status, adjustments, notes, and upload bank_qr_code image
     """
     authentication_classes = [CustomJWTAuthentication]
     permission_classes = [IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser, rest_framework.parsers.JSONParser]
 
     def get(self, request, invoice_id=None):
         from kms.serializers import TeacherInvoiceSerializer
@@ -332,9 +335,14 @@ class TeacherInvoiceManagementView(APIView):
             invoice.tax_amount = invoice.gross_amount * invoice.tax_rate / Decimal('100')
             invoice.net_amount = invoice.gross_amount - invoice.tax_amount
 
-        bank_qr_code = request.data.get('bank_qr_code')
+        # Handle Image File Upload or string URL fallback
+        bank_qr_code = request.FILES.get('bank_qr_code') or request.data.get('bank_qr_code')
         if bank_qr_code is not None:
-            invoice.bank_qr_code = bank_qr_code
+            # If the frontend passes 'null' string explicitly to clear it
+            if bank_qr_code == 'null' or bank_qr_code == '':
+                invoice.bank_qr_code = None
+            else:
+                invoice.bank_qr_code = bank_qr_code
 
         invoice.save()
 
