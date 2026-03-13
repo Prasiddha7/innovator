@@ -15,6 +15,7 @@ urlpatterns = [
     # Student List (Plural and Singular)
     path('students/list/', StudentCreateAPIView.as_view(), name='student-list-plural'),
     path('student/list/', StudentCreateAPIView.as_view(), name='student-list'),
+    path('student/create/', StudentCreateAPIView.as_view(), name='student-create'),
     # Schools
     path('admin/schools/', SchoolView.as_view(), name='school-list-create'),
     path('admin/schools/<str:school_id>/', SchoolView.as_view(), name='school-detail'),
