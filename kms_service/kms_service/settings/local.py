@@ -27,6 +27,10 @@ INSTALLED_APPS = [
     "kms",
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -96,5 +100,7 @@ SIMPLE_JWT = {
 CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://unerratic-stanford-rimosely.ngrok-free.dev"
+    "https://unerratic-stanford-rimosely.ngrok-free.dev",
+    "http://182.93.94.220:8002",
+    "http://182.93.94.220"
 ]

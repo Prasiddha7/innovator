@@ -13,3 +13,4 @@ drf-spectacular==0.28.0
 gunicorn==23.0.0
 setuptools==75.8.0
 Pillow==11.1.0
+django-jazzmin==3.0.1
