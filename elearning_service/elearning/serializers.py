@@ -129,3 +129,15 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = '__all__'
         read_only_fields = ['student', 'timestamp']
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    full_name = serializers.CharField(source='user.full_name', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    enrollments = EnrollmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id', 'username', 'full_name', 'email', 'enrollments', 'created_at'
+        ]

@@ -13,7 +13,8 @@ from elearning.models import (
 from elearning.serializers import (
     UserSyncSerializer, CategorySerializer, CourseSerializer, CourseListSerializer,
     CourseContentSerializer, VendorProfileSerializer,
-    EnrollmentSerializer, PaymentSerializer, PayoutRequestSerializer
+    EnrollmentSerializer, PaymentSerializer, PayoutRequestSerializer,
+    StudentProfileSerializer
 )
 from elearning.permissions import IsElearningVendorUser, IsStudentUser
 
@@ -141,22 +142,31 @@ class StudentCourseListView(generics.ListAPIView):
     serializer_class = CourseListSerializer
 
 class StudentEnrollmentViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsStudentUser]
+    permission_classes = [IsAuthenticated]
     serializer_class = EnrollmentSerializer
 
     def get_queryset(self):
-        # Safely fetch or create the profile just in case it's missing from sync
+        # Safely fetch or create the profile and update role
         from elearning.models import StudentProfile
-        student_profile, _ = StudentProfile.objects.get_or_create(
-            user=self.request.user, defaults={'id': self.request.user.id}
+        user = self.request.user
+        student_profile, created = StudentProfile.objects.get_or_create(
+            user=user, defaults={'id': user.id}
         )
+        if user.role != "student":
+            user.role = "student"
+            user.save(update_fields=['role'])
+            
         return Enrollment.objects.filter(student=student_profile)
 
     def perform_create(self, serializer):
         from elearning.models import StudentProfile
-        student_profile, _ = StudentProfile.objects.get_or_create(
-            user=self.request.user, defaults={'id': self.request.user.id}
+        user = self.request.user
+        student_profile, created = StudentProfile.objects.get_or_create(
+            user=user, defaults={'id': user.id}
         )
+        if user.role != "student":
+            user.role = "student"
+            user.save(update_fields=['role'])
         course = serializer.validated_data.get('course')
         
         # Course validation and existing enrollment check
@@ -193,13 +203,22 @@ class StudentEnrollmentViewSet(viewsets.ModelViewSet):
             vendor_profile.save()
 
 class StudentCourseContentListView(generics.ListAPIView):
-    permission_classes = [IsStudentUser]
+    permission_classes = [IsAuthenticated]
     serializer_class = CourseContentSerializer
 
     def get_queryset(self):
         course_id = self.kwargs['course_pk']
+        user = self.request.user
+        
+        # Ensure student profile exists
+        from elearning.models import StudentProfile
+        try:
+            student_profile = user.student_profile
+        except StudentProfile.DoesNotExist:
+            return CourseContent.objects.none()
+
         # Check if enrolled
-        if not Enrollment.objects.filter(course_id=course_id, student=self.request.user.student_profile).exists():
+        if not Enrollment.objects.filter(course_id=course_id, student=student_profile).exists():
             return CourseContent.objects.none()
         return CourseContent.objects.filter(course_id=course_id).order_by('order')
 
@@ -217,3 +236,22 @@ class VendorCatagoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsElearningVendorUser]
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+class StudentProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(responses={200: StudentProfileSerializer})
+    def get(self, request):
+        from elearning.models import StudentProfile
+        user = request.user
+        
+        # Auto-create profile if missing and update role
+        student_profile, created = StudentProfile.objects.get_or_create(
+            user=user, defaults={'id': user.id}
+        )
+        if user.role != "student":
+            user.role = "student"
+            user.save(update_fields=['role'])
+            
+        serializer = StudentProfileSerializer(student_profile)
+        return Response(serializer.data)

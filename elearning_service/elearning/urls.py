@@ -5,7 +5,7 @@ from .views import (
     VendorCatagoryViewSet,
     VendorDashboardView, VendorCourseViewSet, VendorCourseContentViewSet, VendorPayoutViewSet,
     StudentCourseListView, StudentEnrollmentViewSet, StudentCourseContentListView,
-    VendorProfileView, PublicCourseListView
+    VendorProfileView, PublicCourseListView, StudentProfileView
 )
 from .apis.admin import AdminCategoryViewSet, AdminVendorViewSet, AdminCourseViewSet, AdminCourseContentViewSet
 
@@ -41,6 +41,7 @@ urlpatterns = [
 
     # Student specific
     path('student/courses/', StudentCourseListView.as_view(), name='student-course-list'),
+    path('student/profile/', StudentProfileView.as_view(), name='student-profile'),
     path('student/courses/<str:course_pk>/contents/', StudentCourseContentListView.as_view(), name='student-course-content-list'),
 
     # ViewSet Routes
