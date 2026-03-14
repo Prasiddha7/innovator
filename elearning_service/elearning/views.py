@@ -72,9 +72,33 @@ class VendorDashboardView(views.APIView):
     
     @extend_schema(responses={200: VendorProfileSerializer})
     def get(self, request):
-        vendor_profile = request.user.vendor_profile
+        user = request.user
+        
+        # If admin/superuser, they might not have a vendor profile.
+        # We'll provide a general overview or pick the first profile for context if needed.
+        if (user.role == 'admin' or user.is_superuser) and not hasattr(user, 'vendor_profile'):
+            courses = Course.objects.all()
+            students_enrolled = Enrollment.objects.all().count()
+            
+            return Response({
+                "vendor_profile": {
+                    "id": None,
+                    "is_approved": True,
+                    "bio": "Administrator View",
+                    "commission_rate": 0,
+                    "commission_amount": 0,
+                    "total_earnings": 0,
+                    "created_at": None,
+                },
+                "dashboard_stats": {
+                    "courses_count": courses.count(),
+                    "students_enrolled": students_enrolled,
+                    "total_earnings": 0
+                }
+            })
 
-        courses = vendor_profile.course.all()
+        vendor_profile = user.vendor_profile
+        courses = vendor_profile.courses.all() # Changed from .course.all() after checking model's related_name
 
         students_enrolled = Enrollment.objects.filter(
             course__in=courses
@@ -103,7 +127,10 @@ class VendorCourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
 
     def get_queryset(self):
-        return Course.objects.filter(vendor=self.request.user.vendor_profile)
+        user = self.request.user
+        if (user.role == 'admin' or user.is_superuser):
+            return Course.objects.all()
+        return Course.objects.filter(vendor=user.vendor_profile)
 
     def perform_create(self, serializer):
         serializer.save(vendor=self.request.user.vendor_profile)
@@ -113,7 +140,10 @@ class VendorCourseContentViewSet(viewsets.ModelViewSet):
     serializer_class = CourseContentSerializer
 
     def get_queryset(self):
-        return CourseContent.objects.filter(course__vendor=self.request.user.vendor_profile)
+        user = self.request.user
+        if (user.role == 'admin' or user.is_superuser):
+            return CourseContent.objects.all()
+        return CourseContent.objects.filter(course__vendor=user.vendor_profile)
 
     def perform_create(self, serializer):
         course = get_object_or_404(Course, id=self.kwargs['course_pk'], vendor=self.request.user.vendor_profile)
@@ -124,7 +154,10 @@ class VendorPayoutViewSet(viewsets.ModelViewSet):
     serializer_class = PayoutRequestSerializer
 
     def get_queryset(self):
-        return PayoutRequest.objects.filter(vendor=self.request.user.vendor_profile)
+        user = self.request.user
+        if (user.role == 'admin' or user.is_superuser):
+            return PayoutRequest.objects.all()
+        return PayoutRequest.objects.filter(vendor=user.vendor_profile)
 
     def perform_create(self, serializer):
         serializer.save(vendor=self.request.user.vendor_profile)

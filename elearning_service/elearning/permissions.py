@@ -16,10 +16,18 @@ class IsAdminUser(permissions.BasePermission):
 
 class IsElearningVendorUser(permissions.BasePermission):
     def has_permission(self, request, view):
-        # Must be vendor and approved
-        if not (request.user and request.user.is_authenticated and request.user.role == 'elearning_vendor'):
+        if not (request.user and request.user.is_authenticated):
             return False
-        return request.user.vendor_profile.is_approved
+        
+        # Admins and superusers bypass vendor specific checks
+        if request.user.role == 'admin' or request.user.is_superuser:
+            return True
+            
+        # Vendors must have the role and be approved
+        if request.user.role == 'elearning_vendor':
+            return hasattr(request.user, 'vendor_profile') and request.user.vendor_profile.is_approved
+            
+        return False
 
 class IsStudentUser(permissions.BasePermission):
     def has_permission(self, request, view):
