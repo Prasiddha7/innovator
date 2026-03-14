@@ -4,16 +4,16 @@ from .models import (
     User, School, ClassRoom,Teacher, TeacherSalary, 
     TeacherCompensationRule, TeacherSalarySlip, Coordinator, 
     TeacherClassAssignment, Student, Enrollment, TeacherAttendance, StudentAttendance, TeacherKYC, 
-    TeacherInvoice, CoordinatorInvoice
+    TeacherInvoice, CoordinatorInvoice, Course, TeacherCourseAssignment
 )
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
     list_display = ('name', 'address', 'created_at')
 
-# @admin.register(Course)
-# class CourseAdmin(admin.ModelAdmin):
-#     list_display = ('title', 'school', 'created_by', 'approval_status', 'status', 'start_date', 'end_date', 'created_at')
+@admin.register(Course)
+class CourseAdmin(admin.ModelAdmin):
+    list_display = ('title', 'school', 'created_by', 'approval_status', 'status', 'start_date', 'end_date', 'created_at')
 
 @admin.register(ClassRoom)
 class ClassroomAdmin(admin.ModelAdmin):
@@ -31,9 +31,9 @@ class TeacherSalaryAdmin(admin.ModelAdmin):
 class TeacherClassAssignmentAdmin(admin.ModelAdmin):
     list_display = ('teacher', 'classroom', 'school', 'assigned_at')
 
-# @admin.register(TeacherCourseAssignment)
-# class TeacherCourseAssignmentAdmin(admin.ModelAdmin):
-#     list_display = ('teacher', 'course', 'assigned_at')
+@admin.register(TeacherCourseAssignment)
+class TeacherCourseAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'course', 'assigned_at')
 
 @admin.register(TeacherKYC)
 class TeacherKYCAdmin(admin.ModelAdmin):        
