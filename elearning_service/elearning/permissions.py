@@ -23,9 +23,9 @@ class IsElearningVendorUser(permissions.BasePermission):
         if request.user.role == 'admin' or request.user.is_superuser:
             return True
             
-        # Vendors must have the role and be approved
-        if request.user.role == 'elearning_vendor':
-            return hasattr(request.user, 'vendor_profile') and request.user.vendor_profile.is_approved
+        # If the role is elearning_vendor or vendor, they can manage vendor APIs
+        if request.user.role in ['elearning_vendor', 'vendor']:
+            return hasattr(request.user, 'vendor_profile')
             
         return False
 

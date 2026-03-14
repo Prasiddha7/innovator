@@ -50,7 +50,7 @@ class UserSyncView(APIView):
 
             # Sync to corresponding profile if applicable
             role = user_data.get("role")
-            if role == "elearning_vendor":
+            if role in ["elearning_vendor", "vendor"]:
                 from elearning.models import VendorProfile
                 VendorProfile.objects.get_or_create(user=user, defaults={'id': user.id})
             elif role == "student":
@@ -257,11 +257,23 @@ class StudentCourseContentListView(generics.ListAPIView):
 
 
 class VendorProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsElearningVendorUser]
     serializer_class = VendorProfileSerializer
 
     def get(self, request):
-        vendor_profile = request.user.vendor_profile
+        user = request.user
+        if (user.role == 'admin' or user.is_superuser) and not hasattr(user, 'vendor_profile'):
+            return Response({
+                "id": None,
+                "is_approved": True,
+                "bio": "Administrator",
+                "commission_rate": 0,
+                "commission_amount": 0,
+                "total_earnings": 0,
+                "created_at": None,
+            })
+            
+        vendor_profile = user.vendor_profile
         serializer = VendorProfileSerializer(vendor_profile)
         return Response(serializer.data)
     
