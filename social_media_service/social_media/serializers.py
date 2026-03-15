@@ -46,13 +46,14 @@ class PostSerializer(serializers.ModelSerializer):
     shared_post_details = serializers.SerializerMethodField()
     reaction_types = serializers.SerializerMethodField() # List of types and their counts
     current_user_reaction = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = [
             'id', 'username', 'content', 'image', 'category_names', 'category_ids', 
             'shared_post', 'shared_post_details', 'reactions_count', 'reaction_types',
-            'current_user_reaction', 'comments_count', 'created_at', 'updated_at'
+            'current_user_reaction', 'comments_count', 'comments', 'created_at', 'updated_at'
         ]
 
     def get_reactions_count(self, obj):
@@ -60,6 +61,11 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_comments_count(self, obj):
         return obj.comments.count()
+
+    def get_comments(self, obj):
+        # Only return top-level comments. Nesting in serializer handles the rest.
+        top_level_comments = obj.comments.filter(parent__isnull=True)
+        return CommentSerializer(top_level_comments, many=True, context=self.context).data
 
     def get_reaction_types(self, obj):
         from django.db.models import Count
@@ -92,23 +98,37 @@ class ReactionSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')
     replies = serializers.SerializerMethodField()
+    replies_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'username', 'post', 'parent', 'content', 'replies', 'created_at']
+        fields = ['id', 'username', 'post', 'parent', 'content', 'replies', 'replies_count', 'created_at']
         read_only_fields = ['user']
+
+    def get_replies(self, obj):
+        # Limit nesting to prevent huge payloads if needed, or just return all
+        replies = obj.replies.all()
+        return CommentSerializer(replies, many=True, context=self.context).data
+
+    def get_replies_count(self, obj):
+        return obj.replies.count()
+
+class CommentReplySerializer(serializers.ModelSerializer):
+    username = serializers.ReadOnlyField(source='user.username')
+    replies = serializers.SerializerMethodField()
+    replies_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'username', 'post', 'parent', 'content', 'replies', 'replies_count', 'created_at']
+        read_only_fields = ['user', 'post']
 
     def get_replies(self, obj):
         replies = obj.replies.all()
         return CommentSerializer(replies, many=True, context=self.context).data
 
-class CommentReplySerializer(serializers.ModelSerializer):
-    username = serializers.ReadOnlyField(source='user.username')
-
-    class Meta:
-        model = Comment
-        fields = ['id', 'username', 'post', 'parent', 'content', 'created_at']
-        read_only_fields = ['user', 'post']
+    def get_replies_count(self, obj):
+        return obj.replies.count()
 
     def validate(self, attrs):
         parent = attrs.get('parent')
