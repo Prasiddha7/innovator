@@ -85,12 +85,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 # JWT_SECRET = "sB7!vT8x#rK2qL9@uF1zM3dP5yH0wE6c"
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SHARED_JWT_SECRET,
     "VERIFYING_KEY": None,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "LEEWAY": timedelta(hours=1),
 }
 
 CORS_ALLOW_ALL_ORIGINS = True 

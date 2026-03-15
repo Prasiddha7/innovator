@@ -14,22 +14,9 @@ SHARED_JWT_SECRET = os.getenv(
 
 SECRET_KEY = SHARED_JWT_SECRET
 
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'drf_spectacular',
-    'social_media',
-]
-
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "social_media.authentication.CustomJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -42,6 +29,9 @@ SIMPLE_JWT = {
     "SIGNING_KEY": SHARED_JWT_SECRET,
     "VERIFYING_KEY": None,
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "LEEWAY": timedelta(hours=1),
 }

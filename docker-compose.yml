@@ -167,7 +167,7 @@ services:
     env_file:
       - ./social_media_service/.env
     environment:
-      - DJANGO_SETTINGS_MODULE=social_media_service.settings.base
+      - DJANGO_SETTINGS_MODULE=social_media_service.settings.local
       - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
       - SHARED_JWT_SECRET=innovator-django-secret-key-shared-microservices-12345
     volumes:
