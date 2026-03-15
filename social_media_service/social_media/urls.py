@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    UserSyncView, CategoryViewSet, ProfileView,
+    HomeView, UserSyncView, CategoryViewSet, ProfileView,
     PostViewSet, CommentViewSet, ReactionViewSet
 )
 
@@ -12,6 +12,7 @@ router.register(r'comments', CommentViewSet, basename='comment')
 router.register(r'reactions', ReactionViewSet, basename='reaction')
 
 urlpatterns = [
+    path('', HomeView.as_view(), name='home'),
     path('internal/sync-user/', UserSyncView.as_view(), name='sync-user'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('', include(router.urls)),

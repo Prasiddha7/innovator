@@ -9,6 +9,11 @@ from .serializers import (
     PostSerializer, CommentSerializer, ReactionSerializer, ChatMessageSerializer
 )
 
+class HomeView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        return Response({"status": "Social Media API is running"}, status=status.HTTP_200_OK)
+
 class UserSyncView(APIView):
     permission_classes = [AllowAny]
     serializer_class = UserSyncSerializer

@@ -15,4 +15,4 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "social_media_service.wsgi:application", "--bind", "0.0.0.0:8000"]
