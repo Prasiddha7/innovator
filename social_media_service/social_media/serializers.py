@@ -44,14 +44,14 @@ class PostSerializer(serializers.ModelSerializer):
         queryset=Category.objects.all(), many=True, write_only=True, source='categories'
     )
     shared_post_details = serializers.SerializerMethodField()
-    reaction_counts = serializers.SerializerMethodField()
+    reaction_types = serializers.SerializerMethodField() # List of types and their counts
     current_user_reaction = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = [
             'id', 'username', 'content', 'image', 'category_names', 'category_ids', 
-            'shared_post', 'shared_post_details', 'reactions_count', 'reaction_counts',
+            'shared_post', 'shared_post_details', 'reactions_count', 'reaction_types',
             'current_user_reaction', 'comments_count', 'created_at', 'updated_at'
         ]
 
@@ -61,10 +61,10 @@ class PostSerializer(serializers.ModelSerializer):
     def get_comments_count(self, obj):
         return obj.comments.count()
 
-    def get_reaction_counts(self, obj):
+    def get_reaction_types(self, obj):
         from django.db.models import Count
         counts = obj.reactions.values('type').annotate(total=Count('type'))
-        return {item['type']: item['total'] for item in counts}
+        return [{"type": item['type'], "count": item['total']} for item in counts]
 
     def get_current_user_reaction(self, obj):
         request = self.context.get('request')
