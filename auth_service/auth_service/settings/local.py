@@ -101,6 +101,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Microservice Sync URLs for development
-KMS_SERVICE_SYNC_URL = os.getenv("KMS_SERVICE_URL", "http://kms-service:8002") + "/api/internal/sync-user/"
+KMS_SERVICE_SYNC_URL = os.getenv("KMS_SERVICE_URL", "http://kms-service:8002") + "/api/kms/internal/sync-user/"
 ELEARNING_SERVICE_SYNC_URL = os.getenv("ELEARNING_SERVICE_URL", "http://elearning-service:8003") + "/api/internal/sync-user/"
 ECOMMERCE_SERVICE_SYNC_URL = os.getenv("ECOMMERCE_SERVICE_URL", "http://ecommerce-service:8004") + "/api/internal/sync-user/"
+SOCIAL_MEDIA_SERVICE_SYNC_URL = os.getenv("SOCIAL_MEDIA_SERVICE_URL", "http://social-media-service:8005") + "/api/internal/sync-user/"
