@@ -2,6 +2,7 @@ from rest_framework import viewsets, generics, views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from .models import User, Category, Profile, Post, Comment, Reaction, ChatMessage
 from .serializers import (
@@ -92,3 +93,33 @@ class ReactionViewSet(viewsets.ModelViewSet):
         post = serializer.validated_data['post']
         Reaction.objects.filter(user=self.request.user, post=post).delete()
         serializer.save(user=self.request.user)
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSyncSerializer # Reusing for list/detail for now
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['post'])
+    def follow(self, request, pk=None):
+        user_to_follow = self.get_object()
+        if user_to_follow == request.user:
+            return Response({"error": "You cannot follow yourself"}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.following.add(user_to_follow)
+        return Response({"message": f"Successfully followed {user_to_follow.username}"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def unfollow(self, request, pk=None):
+        user_to_unfollow = self.get_object()
+        request.user.following.remove(user_to_unfollow)
+        return Response({"message": f"Successfully unfollowed {user_to_unfollow.username}"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def following(self, request):
+        following = request.user.following.all()
+        serializer = UserSyncSerializer(following, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def followers(self, request):
+        followers = request.user.followers.all()
+        serializer = UserSyncSerializer(followers, many=True)
+        return Response(serializer.data)
