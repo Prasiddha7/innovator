@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import User, Category, Profile, Post, Comment, Reaction, ChatMessage
 from .serializers import (
     UserSyncSerializer, CategorySerializer, ProfileSerializer, 
-    PostSerializer, CommentSerializer, ReactionSerializer, ChatMessageSerializer
+    PostSerializer, CommentSerializer, CommentReplySerializer, ReactionSerializer, ChatMessageSerializer
 )
 
 class HomeView(APIView):
@@ -73,11 +73,31 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """ViewSet for top-level comments."""
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Comment.objects.filter(post_id=self.request.query_params.get('post'))
+        queryset = Comment.objects.filter(parent__isnull=True)
+        post_id = self.request.query_params.get('post')
+        if post_id:
+            queryset = queryset.filter(post_id=post_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class CommentReplyViewSet(viewsets.ModelViewSet):
+    """ViewSet specifically for comment replies."""
+    serializer_class = CommentReplySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Comment.objects.filter(parent__isnull=False)
+        parent_id = self.request.query_params.get('parent')
+        if parent_id:
+            queryset = queryset.filter(parent_id=parent_id)
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

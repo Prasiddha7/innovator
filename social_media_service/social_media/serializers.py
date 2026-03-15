@@ -99,9 +99,24 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['user']
 
     def get_replies(self, obj):
-        if obj.replies.exists():
-            return CommentSerializer(obj.replies.all(), many=True).data
-        return []
+        replies = obj.replies.all()
+        return CommentSerializer(replies, many=True, context=self.context).data
+
+class CommentReplySerializer(serializers.ModelSerializer):
+    username = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'username', 'post', 'parent', 'content', 'created_at']
+        read_only_fields = ['user', 'post']
+
+    def validate(self, attrs):
+        parent = attrs.get('parent')
+        if not parent:
+            raise serializers.ValidationError({"parent": "Parent comment is required for replies."})
+        # Automatically set the post from the parent comment
+        attrs['post'] = parent.post
+        return attrs
 
 class ChatMessageSerializer(serializers.ModelSerializer):
     sender_username = serializers.ReadOnlyField(source='sender.username')
