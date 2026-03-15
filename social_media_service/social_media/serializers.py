@@ -44,16 +44,34 @@ class PostSerializer(serializers.ModelSerializer):
         queryset=Category.objects.all(), many=True, write_only=True, source='categories'
     )
     shared_post_details = serializers.SerializerMethodField()
+    reaction_counts = serializers.SerializerMethodField()
+    current_user_reaction = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ['id', 'username', 'content', 'image', 'category_names', 'category_ids', 'shared_post', 'shared_post_details', 'reactions_count', 'comments_count', 'created_at', 'updated_at']
+        fields = [
+            'id', 'username', 'content', 'image', 'category_names', 'category_ids', 
+            'shared_post', 'shared_post_details', 'reactions_count', 'reaction_counts',
+            'current_user_reaction', 'comments_count', 'created_at', 'updated_at'
+        ]
 
     def get_reactions_count(self, obj):
         return obj.reactions.count()
 
     def get_comments_count(self, obj):
         return obj.comments.count()
+
+    def get_reaction_counts(self, obj):
+        from django.db.models import Count
+        counts = obj.reactions.values('type').annotate(total=Count('type'))
+        return {item['type']: item['total'] for item in counts}
+
+    def get_current_user_reaction(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            reaction = obj.reactions.filter(user=request.user).first()
+            return reaction.type if reaction else None
+        return None
 
     def get_shared_post_details(self, obj):
         if obj.shared_post:
