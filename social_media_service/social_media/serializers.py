@@ -9,10 +9,23 @@ class UserSyncSerializer(serializers.Serializer):
     role = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
     followers_count = serializers.IntegerField(source='followers.count', read_only=True)
     following_count = serializers.IntegerField(source='following.count', read_only=True)
+    follower_usernames = serializers.SerializerMethodField()
+    following_usernames = serializers.SerializerMethodField()
     gender = serializers.CharField(max_length=10, required=False, allow_null=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     address = serializers.CharField(required=False, allow_null=True)
     phone_number = serializers.CharField(max_length=20, required=False, allow_null=True)
+
+    def get_follower_usernames(self, obj):
+        # Handle case where obj is a dict (during registration sync) or model instance
+        if isinstance(obj, dict):
+            return [] # New users have no followers
+        return list(obj.followers.values_list('username', flat=True))
+
+    def get_following_usernames(self, obj):
+        if isinstance(obj, dict):
+            return []
+        return list(obj.following.values_list('username', flat=True))
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,10 +47,21 @@ class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     followers_count = serializers.IntegerField(source='followers.count', read_only=True)
     following_count = serializers.IntegerField(source='following.count', read_only=True)
+    follower_usernames = serializers.SerializerMethodField()
+    following_usernames = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'full_name', 'email', 'role', 'profile', 'followers_count', 'following_count']
+        fields = [
+            'id', 'username', 'full_name', 'email', 'role', 'profile', 
+            'followers_count', 'following_count', 'follower_usernames', 'following_usernames'
+        ]
+
+    def get_follower_usernames(self, obj):
+        return list(obj.followers.values_list('username', flat=True))
+
+    def get_following_usernames(self, obj):
+        return list(obj.following.values_list('username', flat=True))
 
 class PostSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')

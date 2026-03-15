@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from .models import User, Category, Profile, Post, Comment, Reaction, ChatMessage
 from .serializers import (
-    UserSyncSerializer, CategorySerializer, ProfileSerializer, 
+    UserSyncSerializer, UserSerializer, CategorySerializer, ProfileSerializer, 
     PostSerializer, CommentSerializer, CommentReplySerializer, ReactionSerializer, ChatMessageSerializer
 )
 

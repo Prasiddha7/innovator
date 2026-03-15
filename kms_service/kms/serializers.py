@@ -831,11 +831,16 @@ class TeacherKYCUploadSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from .models import User
 
-class UserSyncSerializer(serializers.ModelSerializer):
+class UserSyncSerializer(serializers.Serializer):
     id = serializers.UUIDField()
-    class Meta:
-        model = User
-        fields = ["id", "username", "full_name", "email", "role", "gender", "date_of_birth", "address", "phone_number"]
+    username = serializers.CharField(max_length=150)
+    full_name = serializers.CharField(max_length=255, required=False, allow_null=True)
+    email = serializers.EmailField(required=False, allow_null=True)
+    role = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
+    gender = serializers.CharField(max_length=10, required=False, allow_null=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    address = serializers.CharField(required=False, allow_null=True)
+    phone_number = serializers.CharField(max_length=20, required=False, allow_null=True)
 
 class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
