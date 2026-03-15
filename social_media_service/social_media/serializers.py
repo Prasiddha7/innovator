@@ -113,6 +113,13 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_replies_count(self, obj):
         return obj.replies.count()
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if representation.get('replies_count') == 0:
+            representation.pop('replies', None)
+            representation.pop('replies_count', None)
+        return representation
+
 class CommentReplySerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')
     replies = serializers.SerializerMethodField()
@@ -129,6 +136,13 @@ class CommentReplySerializer(serializers.ModelSerializer):
 
     def get_replies_count(self, obj):
         return obj.replies.count()
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if representation.get('replies_count') == 0:
+            representation.pop('replies', None)
+            representation.pop('replies_count', None)
+        return representation
 
     def validate(self, attrs):
         parent = attrs.get('parent')
