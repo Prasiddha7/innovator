@@ -38,10 +38,24 @@ class ProfileSerializer(serializers.ModelSerializer):
     interest_ids = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), many=True, write_only=True, source='interests'
     )
+    followers_count = serializers.IntegerField(source='user.followers.count', read_only=True)
+    following_count = serializers.IntegerField(source='user.following.count', read_only=True)
+    follower_usernames = serializers.SerializerMethodField()
+    following_usernames = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
-        fields = ['id', 'username', 'bio', 'avatar', 'interests', 'interest_ids', 'created_at']
+        fields = [
+            'id', 'username', 'bio', 'avatar', 'interests', 'interest_ids', 
+            'followers_count', 'following_count', 'follower_usernames', 'following_usernames',
+            'created_at'
+        ]
+
+    def get_follower_usernames(self, obj):
+        return list(obj.user.followers.values_list('username', flat=True))
+
+    def get_following_usernames(self, obj):
+        return list(obj.user.following.values_list('username', flat=True))
 
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
