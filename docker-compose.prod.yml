@@ -50,6 +50,18 @@ services:
     ports:
       - "5435:5432"
 
+  social_media_db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: social_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: "Nep@tronix9335%"
+    volumes:
+      - social_db_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+
   auth-service:
     build: ./auth_service
     restart: always
@@ -111,8 +123,24 @@ services:
     depends_on:
       - ecommerce_db
 
+  social-media-service:
+    build: ./social_media_service
+    restart: always
+    env_file:
+      - social_media_service/.env.prod
+    environment:
+      - DJANGO_SETTINGS_MODULE=social_media_service.settings.prod
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+      - ALLOWED_HOSTS=*
+    ports:
+      - "8005:8000"
+    command: [ "gunicorn", "social_media_service.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120" ]
+    depends_on:
+      - social_media_db
+
 volumes:
   auth_db_data:
   kms_db_data:
   elearning_db_data:
   ecommerce_db_data:
+  social_db_data:

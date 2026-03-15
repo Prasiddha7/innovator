@@ -63,6 +63,14 @@ class RegisterView(APIView):
         except Exception as e:
             print(f"Error syncing user to Ecommerce: {str(e)}")
 
+        # Social Media Sync
+        try:
+            res = requests.post(settings.SOCIAL_MEDIA_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"Social Media Sync Failed (Status {res.status_code}): {res.text}")
+        except Exception as e:
+            print(f"Error syncing user to Social Media: {str(e)}")
+
 
 class SSOLoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -110,6 +118,12 @@ class SSOLoginView(APIView):
             res = requests.post(settings.ECOMMERCE_SERVICE_SYNC_URL, json=payload, timeout=5)
             if res.status_code != 200:
                 print(f"Ecommerce Sync Failed on Login: {res.text}")
+        except Exception: pass
+
+        try:
+            res = requests.post(settings.SOCIAL_MEDIA_SERVICE_SYNC_URL, json=payload, timeout=5)
+            if res.status_code != 200:
+                print(f"Social Media Sync Failed on Login: {res.text}")
         except Exception: pass
 
         return Response({

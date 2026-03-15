@@ -146,12 +146,49 @@ services:
           - ecommerce-service
           - ecommerce-api
 
+  # --- Social Media Service ---
+  social_media_db:
+    image: postgres:15
+    container_name: innovator-social_db
+    environment:
+      POSTGRES_DB: social_db
+      POSTGRES_USER: innovator_user
+      POSTGRES_PASSWORD: Nep@tronix9335%
+    ports:
+      - "5437:5432"
+    volumes:
+      - social_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+
+  social-media-service:
+    build: ./social_media_service
+    container_name: innovator-social_media_service
+    env_file:
+      - ./social_media_service/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=social_media_service.settings.base
+      - AUTH_SERVICE_URL=http://auth-service:8000/api/auth
+      - SHARED_JWT_SECRET=innovator-django-secret-key-shared-microservices-12345
+    volumes:
+      - ./social_media_service:/app
+    ports:
+      - "8005:8000"
+    depends_on:
+      - social_media_db
+      - auth-service
+    networks:
+      backend_network:
+        aliases:
+          - social-media-service
+
 # --- SHARED STORAGE ---
 volumes:
   auth_data:
   kms_data:
   elearning_data:
   ecommerce_data:
+  social_data:
 
     # --- NETWORK ---
 networks:
