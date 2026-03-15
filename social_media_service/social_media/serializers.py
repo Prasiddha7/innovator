@@ -7,6 +7,8 @@ class UserSyncSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255, required=False, allow_null=True)
     email = serializers.EmailField(required=False, allow_null=True)
     role = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
+    followers_count = serializers.IntegerField(source='followers.count', read_only=True)
+    following_count = serializers.IntegerField(source='following.count', read_only=True)
     gender = serializers.CharField(max_length=10, required=False, allow_null=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     address = serializers.CharField(required=False, allow_null=True)
@@ -30,10 +32,12 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
+    followers_count = serializers.IntegerField(source='followers.count', read_only=True)
+    following_count = serializers.IntegerField(source='following.count', read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'full_name', 'email', 'role', 'profile']
+        fields = ['id', 'username', 'full_name', 'email', 'role', 'profile', 'followers_count', 'following_count']
 
 class PostSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')

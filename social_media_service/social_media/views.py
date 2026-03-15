@@ -115,7 +115,7 @@ class ReactionViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSyncSerializer # Reusing for list/detail for now
+    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
     @action(detail=True, methods=['post'])
@@ -124,22 +124,42 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         if user_to_follow == request.user:
             return Response({"error": "You cannot follow yourself"}, status=status.HTTP_400_BAD_REQUEST)
         request.user.following.add(user_to_follow)
-        return Response({"message": f"Successfully followed {user_to_follow.username}"}, status=status.HTTP_200_OK)
+        return Response({
+            "message": f"Successfully followed {user_to_follow.username}",
+            "followers_count": user_to_follow.followers.count()
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def unfollow(self, request, pk=None):
         user_to_unfollow = self.get_object()
         request.user.following.remove(user_to_unfollow)
-        return Response({"message": f"Successfully unfollowed {user_to_unfollow.username}"}, status=status.HTTP_200_OK)
+        return Response({
+            "message": f"Successfully unfollowed {user_to_unfollow.username}",
+            "followers_count": user_to_unfollow.followers.count()
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='following')
+    def following_detail(self, request, pk=None):
+        user = self.get_object()
+        following = user.following.all()
+        serializer = UserSerializer(following, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def following(self, request):
         following = request.user.following.all()
-        serializer = UserSyncSerializer(following, many=True)
+        serializer = UserSerializer(following, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='followers')
+    def followers_detail(self, request, pk=None):
+        user = self.get_object()
+        followers = user.followers.all()
+        serializer = UserSerializer(followers, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def followers(self, request):
         followers = request.user.followers.all()
-        serializer = UserSyncSerializer(followers, many=True)
+        serializer = UserSerializer(followers, many=True)
         return Response(serializer.data)
