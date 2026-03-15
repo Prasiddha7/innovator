@@ -331,7 +331,6 @@ class StudentAttendance(models.Model):
             models.Index(fields=['classroom', 'date']),
         ]
 
-
 #Teacher KYC and Profile
 class TeacherKYC(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

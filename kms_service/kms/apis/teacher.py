@@ -12,6 +12,8 @@ from kms.serializers import (
     TeacherSalarySlipSerializer
 )
 
+from kms.models import Teacher
+
 from kms.authentication import CustomJWTAuthentication
 from kms.permissions import IsAdmin, IsTeacherUser
 

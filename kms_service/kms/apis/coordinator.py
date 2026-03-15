@@ -16,6 +16,79 @@ from kms.models import (
 from kms.serializers import CoordinatorInvoiceSerializer
 
 
+class TeacherNotesApprovalView(APIView):
+    """
+    Coordinator approves teaching sessions (grouped student attendance with notes)
+    """
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsCoordinatorUser]
+
+    def get(self, request):
+        try:
+            coord = Coordinator.objects.get(user=request.user)
+            if not coord.school:
+                return Response({"detail": "Coordinator not assigned to a school."}, status=403)
+            
+            # Group by teacher, classroom, date, and notes to show "Sessions"
+            sessions = StudentAttendance.objects.filter(
+                classroom__school=coord.school,
+                approved="PENDING"
+            ).values(
+                'teacher__id', 'teacher__name', 
+                'classroom__id', 'classroom__name', 
+                'date', 'notes'
+            ).annotate(
+                student_count=Count('id')
+            ).order_by('-date')
+
+            return Response({
+                "total_sessions": len(sessions),
+                "sessions": sessions
+            })
+        except Coordinator.DoesNotExist:
+            return Response({"detail": "Coordinator profile not found."}, status=404)
+
+    def post(self, request):
+        try:
+            coord = Coordinator.objects.get(user=request.user)
+            if not coord.school:
+                return Response({"detail": "Coordinator not assigned to a school."}, status=403)
+            
+            teacher_id = request.data.get("teacher_id")
+            classroom_id = request.data.get("classroom_id")
+            date = request.data.get("date")
+            notes = request.data.get("notes") # Identifying notes
+            action = request.data.get("action", "approve")
+            
+            if not all([teacher_id, classroom_id, date]):
+                return Response({"detail": "teacher_id, classroom_id, and date are required."}, status=400)
+
+            status_val = "APPROVED" if action == "approve" else "REJECTED"
+
+            # Bulk update all students in that session
+            updated_count = StudentAttendance.objects.filter(
+                teacher_id=teacher_id,
+                classroom_id=classroom_id,
+                classroom__school=coord.school,
+                date=date,
+                notes=notes,
+                approved="PENDING"
+            ).update(
+                approved=status_val,
+                approved_by=str(request.user.id),
+                approved_at=timezone.now(),
+                notes=f"{notes}\n\n[Coordinator Note]: {request.data.get('coordinator_notes', '')}" if request.data.get('coordinator_notes') else notes
+            )
+
+            return Response({
+                "message": f"Successfully {action}d {updated_count} student attendance records for this session.",
+                "updated_count": updated_count,
+                "action": action
+            })
+        except Coordinator.DoesNotExist:
+            return Response({"detail": "Coordinator profile not found."}, status=404)
+
+
 class TeacherAttendanceSupervisionView(APIView):
     """
     Coordinator supervises and approves teacher attendance
@@ -55,7 +128,7 @@ class TeacherAttendanceSupervisionView(APIView):
         ).distinct()
 
         attendances = TeacherAttendance.objects.filter(
-            teacher__in=teachers
+            school=coord.school
         )
 
         # Filters

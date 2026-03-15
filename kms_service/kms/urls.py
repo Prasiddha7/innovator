@@ -3,7 +3,8 @@ from kms.views import UserSyncView, UserDetailView
 from kms.apis.coordinator import (
     TeacherAttendanceSupervisionView,
     CoordinatorInvoiceListView,
-    CoordinatorStudentAttendanceApprovalView
+    CoordinatorStudentAttendanceApprovalView,
+    TeacherNotesApprovalView
 )
 from kms.apis.coordinator_assignment import CoordinatorSchoolAssignmentView
 from kms.apis.administrator import (
@@ -79,4 +80,5 @@ urlpatterns = [
     # Coordinator Portal
     path('coordinator/invoices/', CoordinatorInvoiceListView.as_view(), name='coordinator-invoice-list'),
     path('coordinator/student-attendance/approve/', CoordinatorStudentAttendanceApprovalView.as_view(), name='coordinator-student-attendance-approve'),
+    path('coordinator/teaching-notes/', TeacherNotesApprovalView.as_view(), name='coordinator-teaching-notes'),
 ]
